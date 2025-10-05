@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dingle v4 🍩</title>
+  <style>
+    /* Gradient Background Animation */
+    @keyframes rainbowGradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    body {
+      font-family: Arial, sans-serif;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      background: linear-gradient(-45deg, red, orange, yellow, green, blue, indigo, violet);
+      background-size: 400% 400%;
+      animation: rainbowGradient 30s ease infinite;
+    }
+    h1 { margin-top: 20px; }
+    .hidden { display: none; }
+    #login-section, #game-section {
+      margin-top: 30px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.4);
+      width: 90%;
+      max-width: 450px;
+    }
+    input, select, button {
+      margin: 5px 0;
+      padding: 10px;
+      width: 100%;
+      border: none;
+      border-radius: 8px;
+    }
+    button {
+      background: #ff69b4;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover { background: #ff4f9b; }
+    #tiles {
+      display: grid;
+      grid-template-columns: repeat(5, 60px);
+      gap: 10px;
+      justify-content: center;
+      margin-top: 15px;
+    }
+    .tile {
+      width: 60px;
+      height: 60px;
+      background: #444;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .tile.revealed.safe {
+      background: #2ecc71;
+      animation: safePop 0.3s;
+    }
+    .tile.revealed.bomb {
+      background: #e74c3c;
+      animation: bombFlash 0.4s;
+    }
+    @keyframes safePop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.3); }
+      100% { transform: scale(1); }
+    }
+    @keyframes bombFlash {
+      0% { background-color: #e74c3c; }
+      50% { background-color: #c0392b; }
+      100% { background-color: #e74c3c; }
+    }
+    .pulse {
+      animation: multiplierPulse 0.5s;
+    }
+    @keyframes multiplierPulse {
+      0% { transform: scale(1); color: #fff; }
+      50% { transform: scale(1.5); color: #ff0; }
+      100% { transform: scale(1); color: #fff; }
+    }
+    #leaderboard {
+      margin-top: 25px;
+      background: #333;
+      padding: 15px;
+      border-radius: 12px;
+    }
+    #leaderboard h3 {
+      text-align: center;
+      margin: 0 0 10px 0;
+    }
+    #leaderboard ol {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    #leaderboard li {
+      background: #222;
+      margin: 4px 0;
+      padding: 6px 10px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+    #login-error, #trans-error, #game-message {
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>🍩 Dingle v4</h1>
+
+  <section id="login-section">
+    <h2>Login / Register</h2>
+    <input id="username" placeholder="Username" />
+    <input id="password" type="password" placeholder="Password" />
+    <button id="login-btn">Login</button>
+    <button id="register-btn">Register</button>
+    <p id="login-error"></p>
+  </section>
+
+  <section id="game-section" class="hidden">
+    <h2>Welcome, <span id="user-display"></span>!</h2>
+    <p>Balance: $<span id="balance-display">0.00</span></p>
+
+    <div>
+      <input id="amount" placeholder="Amount" type="number" step="0.01" min="0" />
+      <button id="deposit-btn">Deposit</button>
+      <button id="withdraw-btn">Withdraw</button>
+      <p id="trans-error"></p>
+    </div>
+
+    <hr />
+
+    <div>
+      <label>Bet: $</label>
+      <input id="bet" placeholder="0.00" type="number" step="0.01" min="0" />
+      <label>Bombs:</label>
+      <select id="bomb-count"></select>
+      <button id="start-btn">Start Game</button>
+    </div>
+
+    <div id="tiles"></div>
+    <p id="game-message"></p>
+    <p>
+      Multiplier: x<span id="multiplier-display">1.00</span> |
+      Potential Win: $<span id="potential-win">0.00</span>
+    </p>
+    <button id="cashout-btn" class="hidden">Cash Out</button>
+    <button id="logout-btn">Logout</button>
+
+    <div id="leaderboard">
+      <h3>🏆 Global Leaderboard</h3>
+      <ol id="leaderboard-list"></ol>
+    </div>
+  </section>
+
+  <audio id="click-sound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_2a223bf2be.mp3?filename=click-124467.mp3"></audio>
+  <audio id="bomb-sound" src="https://cdn.pixabay.com/download/audio/2021/09/07/audio_55ec71dd28.mp3?filename=boom-6468.mp3"></audio>
+  <audio id="cashout-sound" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_3fef81207e.mp3?filename=coin-collect-retro-8-bit-sound-effect-145251.mp3"></audio>
+
+  <script>
+    // === Data & State ===
+    let users = JSON.parse(localStorage.getItem("dingleUsers") || "{}");
+    let currentUser = null;
+    const tileCount = 25;
+
+    const multipliersByBombs = {
+      1:[1.05,1.10,1.15,1.20,1.25,1.30,1.35,1.40,1.45,1.50],
+      2:[1.10,1.20,1.30,1.40,1.50,1.60,1.70,1.80,1.90,2.00],
+      3:[1.15,1.30,1.45,1.60,1.75,1.90,2.05,2.20,2.35,2.50],
+      4:[1.20,1.40,1.60,1.80,2.00,2.20,2.40,2.60,2.80,3.00],
+      5:[1.25,1.50,1.75,2.00,2.25,2.50,2.75,3.00,3.25,3.50],
+      6:[1.30,1.60,1.90,2.20,2.50,2.80,3.10,3.40,3.70,4.00],
+      7:[1.35,1.70,2.05,2.40,2.75,3.10,3.45,3.80,4.15,4.50],
+      8:[1.40,1.80,2.20,2.60,3.00,3.40,3.80,4.20,4.60,5.00],
+      9:[1.45,1.90,2.35,2.80,3.25,3.70,4.15,4.60,5.05,5.50],
+      10:[1.50,2.00,2.50,3.00,3.50,4.00,4.50,5.00,5.50,6.00],
+      11:[1.60,2.10,2.65,3.20,3.75,4.30,4.85,5.40,5.95,6.50]
+    };
+
+    // === Element References ===
+    const loginSection = document.getElementById('login-section');
+    const gameSection = document.getElementById('game-section');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const loginBtn = document.getElementById('login-btn');
+    const registerBtn = document.getElementById('register-btn');
+    const loginError = document.getElementById('login-error');
+    const userDisplay = document.getElementById('user-display');
+    const balanceDisplay = document.getElementById('balance-display');
+    const amountInput = document.getElementById('amount');
+    const depositBtn = document.getElementById('deposit-btn');
+    const withdrawBtn = document.getElementById('withdraw-btn');
+    const transError = document.getElementById('trans-error');
+    const betInput = document.getElementById('bet');
+    const bombCountSelect = document.getElementById('bomb-count');
+    const startBtn = document.getElementById('start-btn');
+    const tilesDiv = document.getElementById('tiles');
+    const gameMessage = document.getElementById('game-message');
+    const multiplierDisplay = document.getElementById('multiplier-display');
+    const potentialWinDisplay = document.getElementById('potential-win');
+    const cashoutBtn = document.getElementById('cashout-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const leaderboardList = document.getElementById('leaderboard-list');
+
+    const clickSound = document.getElementById('click-sound');
+    const bombSound = document.getElementById('bomb-sound');
+    const cashoutSound = document.getElementById('cashout-sound');
+
+    // Populate bomb count dropdown
+    for (let i = 1; i <= 11; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = i;
+      bombCountSelect.appendChild(opt);
+    }
+
+    // Utility: save users to localStorage
+    function saveUsers() {
+      localStorage.setItem("dingleUsers", JSON.stringify(users));
+      updateLeaderboard();
+    }
+
+    // Show error messages
+    function showLoginError(msg, isSuccess = false) {
+      loginError.textContent = msg;
+      loginError.style.color = isSuccess ? "lime" : "red";
+    }
+
+    // --- Registration ---
+    registerBtn.addEventListener('click', () => {
+      const u = usernameInput.value.trim();
+      const p = passwordInput.value.trim();
+      if (!u || !p) {
+        showLoginError("Enter username & password");
+        return;
+      }
+      if (p.length < 4) {
+        showLoginError("Password too short (min 4 chars)");
+        return;
+      }
+      if (users[u]) {
+        showLoginError("User already exists");
+        return;
+      }
+      // Create new user
+      users[u] = {
+        password: p,
+        balance: 0,
+        activeGame: null
+      };
+      saveUsers();
+      showLoginError("✅ Registered! You can login now.", true);
+      // Optionally auto‑login? For now we expect user presses Login.
+    });
+
+    // --- Login ---
+    loginBtn.addEventListener('click', () => {
+      const u = usernameInput.value.trim();
+      const p = passwordInput.value.trim();
+      if (!u || !p) {
+        showLoginError("Enter username & password");
+        return;
+      }
+      const user = users[u];
+      if (!user || user.password !== p) {
+        showLoginError("Invalid username or password");
+        return;
+      }
+      // Login success
+      currentUser = user;
+      currentUser.username = u;
+      usernameInput.value = "";
+      passwordInput.value = "";
+      loginError.textContent = "";
+      showGameUI();
+    });
+
+    // --- UI Switch ---
+    function showGameUI() {
+      loginSection.classList.add('hidden');
+      gameSection.classList.remove('hidden');
+      userDisplay.textContent = currentUser.username;
+      updateBalance();
+      resetGame();
+      updateLeaderboard();
+    }
+
+    function logout() {
+      currentUser = null;
+      loginSection.classList.remove('hidden');
+      gameSection.classList.add('hidden');
+      resetGame();
+    }
+    logoutBtn.addEventListener('click', logout);
+
+    // --- Balance / Transactions ---
+    depositBtn.addEventListener('click', () => {
+      const amt = parseFloat(amountInput.value);
+      if (isNaN(amt) || amt <= 0) {
+        transError.textContent = "Invalid amount";
+        return;
+      }
+      transError.textContent = "";
+      currentUser.balance += amt;
+      amountInput.value = "";
+      updateBalance();
+      saveUsers();
+    });
+
+    withdrawBtn.addEventListener('click', () => {
+      const amt = parseFloat(amountInput.value);
+      if (isNaN(amt) || amt <= 0 || amt > currentUser.balance) {
+        transError.textContent = "Invalid or insufficient balance";
+        return;
+      }
+      transError.textContent = "";
+      currentUser.balance -= amt;
+      amountInput.value = "";
+      updateBalance();
+      saveUsers();
+    });
+
+    function updateBalance() {
+      balanceDisplay.textContent = currentUser.balance.toFixed(2);
+    }
+
+    // --- Game Logic ---
+    startBtn.addEventListener('click', () => {
+      if (currentUser.activeGame) {
+        gameMessage.textContent = "Game already running!";
+        return;
+      }
+      const bet = parseFloat(betInput.value);
+      const bombs = parseInt(bombCountSelect.value);
+      if (isNaN(bet) || bet <= 0 || bet > currentUser.balance) {
+        gameMessage.textContent = "Invalid bet or insufficient funds.";
+        return;
+      }
+      // Pick bombs
+      const bombSet = new Set();
+      while (bombSet.size < bombs) {
+        bombSet.add(Math.floor(Math.random() * tileCount));
+      }
+      currentUser.balance -= bet;
+      updateBalance();
+      currentUser.activeGame = {
+        bet: bet,
+        bombs: Array.from(bombSet),
+        picks: [],
+        multiplier: 1,
+        bombCount: bombs,
+        gameOver: false
+      };
+      drawTiles();
+      cashoutBtn.classList.remove('hidden');
+      gameMessage.textContent = `🎯 Avoid the ${bombs} bombs!`;
+      updateMultiplierDisplay(1, bet);
+      saveUsers();
+    });
+
+    function drawTiles() {
+      tilesDiv.innerHTML = "";
+      for (let i = 0; i < tileCount; i++) {
+        const tile = document.createElement("div");
+        tile.className = "tile";
+        tile.addEventListener('click', () => pickTile(i, tile));
+        tilesDiv.appendChild(tile);
+      }
+    }
+
+    function pickTile(i, tileEl) {
+      const g = currentUser.activeGame;
+      if (!g || g.gameOver || g.picks.includes(i)) return;
+      if (g.bombs.includes(i)) {
+        // Bomb
+        tileEl.classList.add("revealed", "bomb");
+        tileEl.textContent = "💣";
+        bombSound.play();
+        g.gameOver = true;
+        gameMessage.textContent = "💥 You hit a bomb!";
+        revealAllBombs(g.bombs);
+        currentUser.activeGame = null;
+        cashoutBtn.classList.add('hidden');
+        updateMultiplierDisplay(0, 0);
+        saveUsers();
+        return;
+      }
+      // Safe tile
+      g.picks.push(i);
+      tileEl.classList.add("revealed", "safe");
+      tileEl.textContent = "✅";
+      clickSound.play();
+      const c = g.picks.length;
+      const arr = multipliersByBombs[g.bombCount];
+      const idx = Math.min(c - 1, arr.length - 1);
+      g.multiplier = arr[idx];
+      gameMessage.textContent = `Safe! Multiplier: x${g.multiplier.toFixed(2)}`;
+      updateMultiplierDisplay(g.multiplier, g.bet);
+      saveUsers();
+    }
+
+    cashoutBtn.addEventListener('click', () => {
+      const g = currentUser.activeGame;
+      if (!g || g.gameOver) return;
+      const win = g.bet * g.multiplier;
+      currentUser.balance += win;
+      updateBalance();
+      gameMessage.textContent = `🎉 Cashed out $${win.toFixed(2)}!`;
+      cashoutSound.play();
+      revealAllBombs(g.bombs);
+      currentUser.activeGame = null;
+      cashoutBtn.classList.add('hidden');
+      updateMultiplierDisplay(0, 0);
+      saveUsers();
+    });
+
+    function revealAllBombs(bombs) {
+      const tileEls = document.querySelectorAll(".tile");
+      bombs.forEach(i => {
+        const el = tileEls[i];
+        if (el && !el.classList.contains("revealed")) {
+          el.classList.add("revealed", "bomb");
+          el.textContent = "💣";
+        }
+      });
+      // disable further clicking
+      tileEls.forEach(el => {
+        el.onclick = null;
+      });
+    }
+
+    function resetGame() {
+      tilesDiv.innerHTML = "";
+      cashoutBtn.classList.add('hidden');
+      gameMessage.textContent = "";
+      updateMultiplierDisplay(1, 0);
+    }
+
+    function updateMultiplierDisplay(m, b) {
+      multiplierDisplay.textContent = m.toFixed(2);
+      potentialWinDisplay.textContent = (m * b).toFixed(2);
+    }
+
+    function updateLeaderboard() {
+      const arr = Object.entries(users).map(([u,d]) => {
+        return { username: u, balance: d.balance || 0 };
+      });
+      arr.sort((a,b) => b.balance - a.balance);
+      const top = arr.slice(0, 10);
+      leaderboardList.innerHTML = top.map((u, i) => {
+        return `<li><span>${i+1}. ${u.username}</span><span>$${u.balance.toFixed(2)}</span></li>`;
+      }).join("");
+    }
+
+    // On load — show leaderboard if any
+    window.onload = () => {
+      updateLeaderboard();
+    };
+  </script>
+</body>
+</html>
