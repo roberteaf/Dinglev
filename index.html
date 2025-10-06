@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Donut Flip - DonutSMP</title>
+  <style>
+    /* Reset */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #fffbf3;
+      color: #3a3a3a;
+      scroll-behavior: smooth;
+    }
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+    /* Header */
+    header {
+      position: sticky;
+      top: 0;
+      background: #ff6f61;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 1000;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      transition: background 0.3s ease;
+    }
+    header.scrolled {
+      background: #ff503e;
+    }
+    header h1 {
+      font-weight: 700;
+      font-size: 1.8rem;
+      letter-spacing: 2px;
+      color: white;
+      cursor: default;
+    }
+    nav a {
+      color: white;
+      margin-left: 25px;
+      font-weight: 600;
+      font-size: 1rem;
+      position: relative;
+      transition: color 0.3s ease;
+    }
+    nav a::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      background: white;
+      left: 0;
+      bottom: -6px;
+      transition: width 0.3s ease;
+    }
+    nav a:hover, nav a.active {
+      color: #ffe9e6;
+    }
+    nav a:hover::after, nav a.active::after {
+      width: 100%;
+    }
+
+    /* Container */
+    main {
+      max-width: 1100px;
+      margin: 60px auto 80px auto;
+      padding: 0 20px;
+    }
+
+    /* Hero Section */
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 30px;
+      padding-bottom: 80px;
+    }
+    .hero img {
+      max-width: 300px;
+      animation: float 4s ease-in-out infinite;
+      border-radius: 20px;
+      box-shadow: 0 10px 20px rgba(255, 111, 97, 0.4);
+    }
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-20px);
+      }
+    }
+    .hero h2 {
+      font-size: 3rem;
+      color: #ff6f61;
+      letter-spacing: 1.5px;
+      font-weight: 900;
+      line-height: 1.1;
+      max-width: 600px;
+    }
+    .hero p {
+      font-size: 1.3rem;
+      max-width: 600px;
+      color: #555;
+      line-height: 1.6;
+    }
+    .btn-flip {
+      background: #ff6f61;
+      border: none;
+      padding: 18px 50px;
+      border-radius: 40px;
+      color: white;
+      font-size: 1.2rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 6px 15px rgba(255, 111, 97, 0.5);
+      transition: background 0.3s ease, box-shadow 0.3s ease;
+      user-select: none;
+    }
+    .btn-flip:hover {
+      background: #ff503e;
+      box-shadow: 0 8px 22px rgba(255, 80, 30, 0.7);
+    }
+
+    /* Features Section */
+    section.features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(260px,1fr));
+      gap: 40px;
+      padding-bottom: 80px;
+    }
+    .feature-item {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(255, 111, 97, 0.1);
+      padding: 30px;
+      text-align: center;
+      transition: transform 0.3s ease;
+      cursor: default;
+    }
+    .feature-item:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 15px 30px rgba(255, 111, 97, 0.2);
+    }
+    .feature-icon {
+      font-size: 3.8rem;
+      margin-bottom: 20px;
+      color: #ff6f61;
+    }
+    .feature-title {
+      font-weight: 700;
+      font-size: 1.4rem;
+      margin-bottom: 12px;
+      color: #ff503e;
+    }
+    .feature-desc {
+      font-size: 1rem;
+      color: #555;
+      line-height: 1.5;
+    }
+
+    /* How it works */
+    section.how-it-works {
+      padding-bottom: 80px;
+    }
+    .how-it-works h3 {
+      text-align: center;
+      font-size: 2.2rem;
+      color: #ff6f61;
+      margin-bottom: 50px;
+      font-weight: 800;
+    }
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+    @media(min-width: 768px) {
+      .steps {
+        flex-direction: row;
+        justify-content: space-between;
+      }
+    }
+    .step {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(255, 111, 97, 0.1);
+      padding: 25px 30px;
+      flex: 1;
+      text-align: center;
+      transition: transform 0.3s ease;
+    }
+    .step:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 18px 40px rgba(255, 111, 97, 0.2);
+    }
+    .step-number {
+      font-size: 3rem;
+      font-weight: 900;
+      color: #ff6f61;
+      margin-bottom: 15px;
+      user-select: none;
+    }
+    .step-title {
+      font-weight: 700;
+      font-size: 1.3rem;
+      margin-bottom: 10px;
+      color: #ff503e;
+    }
+    .step-desc {
+      font-size: 1rem;
+      color: #555;
+      line-height: 1.5;
+      margin-bottom: 15px;
+    }
+    .step img {
+      max-width: 100%;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(255, 111, 97, 0.15);
+    }
+
+    /* Download Section */
+    section.download {
+      text-align: center;
+      padding-bottom: 80px;
+      background: #ff6f61;
+      color: white;
+      border-radius: 25px;
+      padding: 60px 30px;
+      box-shadow: 0 12px 40px rgba(255, 111, 97, 0.3);
+    }
+    section.download h3 {
+      font-size: 2.4rem;
+      font-weight: 900;
+      margin-bottom: 20px;
+      letter-spacing: 1.2px;
+    }
+    section.download p {
+      font-size: 1.1rem;
+      margin-bottom: 40px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.6;
+      color: #ffe9e6;
+    }
+    .download-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      flex-wrap: wrap;
+    }
+    .btn-download {
+      background: white;
+      color: #ff6f61;
+      padding: 18px 40px;
+      border-radius: 40px;
+      font-weight: 700;
+      font-size: 1.2rem;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(255, 111, 97, 0.6);
+      border: none;
+      transition: background 0.3s ease, color 0.3s ease;
+      user-select: none;
+    }
+    .btn-download:hover {
+      background: #ffe9e6;
+      color: #ff503e;
+      box-shadow: 0 10px 30px rgba(255, 80, 30, 0.7);
+    }
+    .sys-req {
+      margin-top: 30px;
+      font-size: 0.9rem;
+      color: #ffe9e6cc;
+    }
+
+    /* Testimonials */
+    section.testimonials {
+      max-width: 900px;
+      margin: 0 auto 80px auto;
+      padding: 0 20px;
+    }
+    section.testimonials h3 {
+      text-align: center;
+      font-size: 2.2rem;
+      color: #ff6f61;
+      font-weight: 800;
+      margin-bottom: 50px;
+    }
+    .testimonial-slider {
+      position: relative;
+      overflow: hidden;
+    }
+    .testimonial-track {
+      display: flex;
+      transition: transform 0.5s ease;
+    }
+    .testimonial {
+      background: white;
+      box-shadow: 0 10px 30px rgba(255, 111, 97, 0.1);
+      border-radius: 20px;
+      padding: 30px 40px;
+      flex: 0 0 100%;
+      max-width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      text-align: center;
+    }
+    .testimonial p {
+      font-size: 1.1rem;
+      color: #555;
+      line-height: 1.5;
+      font-style: italic;
+    }
+    .testimonial-author {
+      font-weight: 700;
+      color: #ff6f61;
+      font-size: 1.1rem;
+      user-select: none;
+    }
+    .testimonial-controls {
+      margin-top: 20px;
+      text-align: center;
+    }
+    .testimonial-controls button {
+      background: #ff6f61;
+      border: none;
+      color: white;
+      font-weight: 700;
+      padding: 8px 16px;
+      margin: 0 10px;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      user-select: none;
+    }
+    .testimonial-controls button:hover {
+      background: #ff503e;
+    }
+
+    /* FAQ Section */
+    section.faq {
+      max-width: 900px;
+      margin: 0 auto 80px auto;
+      padding: 0 20px;
+    }
+    section.faq h3 {
+      text-align: center;
+      font-size: 2.2rem;
+      color: #ff6f61;
+      font-weight: 800;
+      margin-bottom: 50px;
+    }
+    .faq-item {
+      background: white;
+      border-radius: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 8px 25px rgba(255, 111, 97, 0.1);
+      overflow: hidden;
+    }
+    .faq-question {
+      padding: 20px 30px;
+      cursor: pointer;
+      font-weight: 700;
+      color: #ff503e;
+      font-size: 1.1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+    .faq-question:hover {
+      background: #ffedea;
+    }
+    .faq-answer {
+      padding: 0 30px 20px 30px;
+      font-size: 1rem;
+      color: #555;
+      line-height: 1.5;
+      display: none;
+      user-select: text;
+    }
+    .faq-item.active .faq-answer {
+      display: block;
+    }
+    .faq-icon {
+      font-size: 1.3rem;
+      transition: transform 0.3s ease;
+    }
+    .faq-item.active .faq-icon {
+      transform: rotate(45deg);
+    }
+
+    /* Contact Section */
+    section.contact {
+      max-width: 900px;
+      margin: 0 auto 100px auto;
+      padding: 0 20px;
+    }
+    section.contact h3 {
+      text-align: center;
+      font-size: 2.2rem;
+      color: #ff6f61;
+      font-weight: 800;
+      margin-bottom: 50px;
+    }
+    form.contact-form {
+      background: white;
+      padding: 40px 30px;
+      border-radius: 20px;
+      box-shadow: 0 8px 25px rgba(255, 111, 97, 0.1);
+      max-width: 600px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    form.contact-form label {
+      font-weight: 700;
+      color: #ff503e;
+      font-size: 1rem;
+    }
+    form.contact-form input,
+    form.contact-form textarea {
+      padding: 12px 15px;
+      border: 2px solid #ff6f61;
+      border-radius: 12px;
+      font-size: 1rem;
+      resize: vertical;
+      font-family: inherit;
+      transition: border-color 0.3s ease;
+    }
+    form.contact-form input:focus,
+    form.contact-form textarea:focus {
+      border-color: #ff503e;
+      outline: none;
+    }
+    form.contact-form button {
+      background: #ff6f61;
+      color: white;
+      border: none;
+      padding: 15px 0;
+      font-size: 1.1rem;
+      font-weight: 800;
+      border-radius: 40px;
+      cursor: pointer;
+      box-shadow: 0 6px 15px rgba(255, 111, 97, 0.5);
+      transition: background 0.3s ease;
+      user-select: none;
+    }
+    form.contact-form button:hover {
+      background: #ff503e;
+    }
+    .form-success {
+      color: #28a745;
+      font-weight: 700;
+      text-align: center;
+      margin-top: 15px;
+      display: none;
+    }
+    .form-error {
+      color: #dc3545;
+      font-weight: 700;
+      text-align: center;
+      margin-top: 15px;
+      display: none;
+    }
+
+    /* Footer */
+    footer {
+      background: #ffe9e6;
+      color: #aa4d44;
+      padding: 20px 30px;
+      text-align: center;
+      font-weight: 600;
+      user-select: none;
+      box-shadow: inset 0 1px 3px rgba(255, 111, 97, 0.15);
+    }
+    footer .social-links {
+      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 25px;
+    }
+    footer .social-links a {
+      font-size: 1.5rem;
+      color: #aa4d44;
+      transition: color 0.3s ease;
+    }
+    footer .social-links a:hover {
+      color: #ff6f61;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .hero h2 {
+        font-size: 2rem;
+      }
+      .hero p {
+        font-size: 1rem;
+      }
+      .feature-item {
+        padding: 20px;
+      }
+      section.download {
+        padding: 40px 20px;
+      }
+      section.download h3 {
+        font-size: 1.8rem;
+      }
+      section.download p {
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header id="header">
+    <h1>Donut Flip</h1>
+    <nav>
+      <a href="#hero" class="active">Home</a>
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="#download">Download</a>
+      <a href="#testimonials">Testimonials</a>
+      <a href="#faq">FAQ</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section id="hero" class="hero" aria-label="Hero Section">
+      <img src="https://i.imgur.com/hw9T7Yo.png" alt="Donut Flip game screenshot or logo" />
+      <h2>Donut Flip for DonutSMP</h2>
+      <p>Experience the ultimate flip mechanics for DonutSMP. Flip your donuts with style and precision! Custom-built for the DonutSMP community to enhance your gameplay.</p>
+      <button class="btn-flip" aria-label="Flip a donut" onclick="alert('Donut flipped! 🍩')">Flip a Donut</button>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="features" aria-label="Features Section">
+      <div class="feature-item" tabindex="0" aria-describedby="feature1-desc">
+        <div class="feature-icon" aria-hidden="true">🍩</div>
+        <h3 class="feature-title">Smooth Controls</h3>
+        <p class="feature-desc" id="feature1-desc">Seamless and intuitive donut flipping controls for a fluid gameplay experience.</p>
+      </div>
+      <div class="feature-item" tabindex="0" aria-describedby="feature2-desc">
+        <div class="feature-icon" aria-hidden="true">⚡</div>
+        <h3 class="feature-title">Fast Performance</h3>
+        <p class="feature-desc" id="feature2-desc">Optimized code ensures the game runs smoothly even on lower-end devices.</p>
+      </div>
+      <div class="feature-item" tabindex="0" aria-describedby="feature3-desc">
+        <div class="feature-icon" aria-hidden="true">🎨</div>
+        <h3 class="feature-title">Custom Skins</h3>
+        <p class="feature-desc" id="feature3-desc">Personalize your donuts with exclusive skins and colors.</p>
+      </div>
+      <div class="feature-item" tabindex="0" aria-describedby="feature4-desc">
+        <div class="feature-icon" aria-hidden="true">🌐</div>
+        <h3 class="feature-title">Multiplayer Mode</h3>
+        <p class="feature-desc" id="feature4-desc">Challenge your friends and compete in real-time donut flipping battles.</p>
+      </div>
+    </section>
+
+    <!-- How It Works -->
+    <section id="how-it-works" class="how-it-works" aria-label="How It Works Section">
+      <h3>How It Works</h3>
+      <div class="steps">
+        <div class="step" tabindex="0" aria-describedby="step1-desc">
+          <div class="step-number" aria-hidden="true">1</div>
+          <h4 class="step-title">Download & Install</h4>
+          <p class="step-desc" id="step1-desc">Get the Donut Flip mod for DonutSMP from our official site and install it easily.</p>
+          <img src="https://i.imgur.com/VyRHW4g.png" alt="Download illustration" />
+        </div>
+        <div class="step" tabindex="0" aria-describedby="step2-desc">
+          <div class="step-number" aria-hidden="true">2</div>
+          <h4 class="step-title">Customize Your Donuts</h4>
+          <p class="step-desc" id="step2-desc">Choose from multiple skins and styles to make your donuts unique.</p>
+          <img src="https://i.imgur.com/vO66RYp.png" alt="Customization illustration" />
+        </div>
+        <div class="step" tabindex="0" aria-describedby="step3-desc">
+          <div class="step-number" aria-hidden="true">3</div>
+          <h4 class="step-title">Flip & Compete</h4>
+          <p class="step-desc" id="step3-desc">Use precise controls to flip your donuts and compete against others.</p>
+          <img src="https://i.imgur.com/ktkpU9g.png" alt="Gameplay illustration" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Download -->
+    <section id="download" class="download" aria-label="Download Section">
+      <h3>Download Donut Flip Now</h3>
+      <p>Available for Windows, macOS, and Linux. Download now and start flipping!</p>
+      <div class="download-buttons">
+        <button class="btn-download" onclick="alert('Downloading for Windows...')">Windows</button>
+        <button class="btn-download" onclick="alert('Downloading for macOS...')">macOS</button>
+        <button class="btn-download" onclick="alert('Downloading for Linux...')">Linux</button>
+      </div>
+      <p class="sys-req">System Requirements: Windows 7+, macOS 10.12+, Linux Kernel 4.15+ | 2GB RAM | 200MB Disk Space</p>
+    </section>
+
+    <!-- Testimonials -->
+    <section id="testimonials" class="testimonials" aria-label="Testimonials Section">
+      <h3>What Players Say</h3>
+      <div class="testimonial-slider" aria-live="polite" aria-atomic="true">
+        <div class="testimonial-track" id="testimonial-track">
+          <div class="testimonial" tabindex="0">
+            <p>"Donut Flip completely changed how I play on DonutSMP. So smooth and fun!"</p>
+            <div class="testimonial-author">- Alex</div>
+          </div>
+          <div class="testimonial" tabindex="0">
+            <p>"The multiplayer mode is awesome. Challenging friends has never been this tasty!"</p>
+            <div class="testimonial-author">- Jamie</div>
+          </div>
+          <div class="testimonial" tabindex="0">
+            <p>"Love the custom skins! Makes every flip feel personal."</p>
+            <div class="testimonial-author">- Casey</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-controls">
+        <button aria-label="Previous testimonial" id="prev-testimonial">← Prev</button>
+        <button aria-label="Next testimonial" id="next-testimonial">Next →</button>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="faq" aria-label="Frequently Asked Questions">
+      <h3>Frequently Asked Questions</h3>
+      <div class="faq-item">
+        <div class="faq-question" tabindex="0">
+          What platforms does Donut Flip support?
+          <span class="faq-icon" aria-hidden="true">+</span>
+        </div>
+        <div class="faq-answer">
+          Donut Flip is available on Windows, macOS, and Linux.
+        </div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question" tabindex="0">
+          Is multiplayer mode free to use?
+          <span class="faq-icon" aria-hidden="true">+</span>
+        </div>
+        <div class="faq-answer">
+          Yes! Multiplayer mode is free and included in the main download.
+        </div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question" tabindex="0">
+          Can I customize my donuts?
+          <span class="faq-icon" aria-hidden="true">+</span>
+        </div>
+        <div class="faq-answer">
+          Absolutely! Choose from many skins and colors to personalize your donuts.
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact -->
+    <section id="contact" class="contact" aria-label="Contact Section">
+      <h3>Contact Us</h3>
+      <form class="contact-form" id="contact-form" novalidate>
+        <label for="name">Name *</label>
+        <input id="name" name="name" type="text" placeholder="Your full name" required />
+        
+        <label for="email">Email *</label>
+        <input id="email" name="email" type="email" placeholder="your.email@example.com" required />
+        
+        <label for="message">Message *</label>
+        <textarea id="message" name="message" rows="5" placeholder="Your message here..." required></textarea>
+        
+        <button type="submit">Send Message</button>
+        <div class="form-success" id="form-success">Thank you for contacting us! We'll get back soon.</div>
+        <div class="form-error" id="form-error">Please fill all fields correctly.</div>
+      </form>
+    </section>
+  </main>
+
+  <footer>
+    &copy; 2025 Donut Flip • Made for DonutSMP
+    <div class="social-links" aria-label="Social Media Links">
+      <a href="#" aria-label="Twitter" title="Twitter">🐦</a>
+      <a href="#" aria-label="Discord" title="Discord">💬</a>
+      <a href="#" aria-label="GitHub" title="GitHub">🐙</a>
+    </div>
+  </footer>
+
+  <script>
+    // Sticky header background change on scroll
+    const header = document.getElementById('header');
+    window.addEventListener('scroll', () => {
+      if(window.scrollY > 50) {
+        header.classList.add('scrolled');
+      } else {
+        header.classList.remove('scrolled');
+      }
+    });
+
+    // Navigation active link highlighting on scroll
+    const sections = document.querySelectorAll('main section[id]');
+    const navLinks = document.querySelectorAll('header nav a');
+
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop - 80;
+        const sectionHeight = section.clientHeight;
+        if(scrollY >= sectionTop && scrollY < sectionTop + sectionHeight) {
+          current = section.getAttribute('id');
+        }
+      });
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        if(link.getAttribute('href').substring(1) === current) {
+          link.classList.add('active');
+        }
+      });
+    });
+
+    // Testimonials carousel logic
+    const track = document.getElementById('testimonial-track');
+    const testimonials = track.children;
+    const prevBtn = document.getElementById('prev-testimonial');
+    const nextBtn = document.getElementById('next-testimonial');
+    let currentIndex = 0;
+
+    function updateTestimonialPosition() {
+      track.style.transform = `translateX(-${currentIndex * 100}%)`;
+    }
+
+    prevBtn.addEventListener('click', () => {
+      currentIndex = (currentIndex - 1 + testimonials.length) % testimonials.length;
+      updateTestimonialPosition();
+    });
+
+    nextBtn.addEventListener('click', () => {
+      currentIndex = (currentIndex + 1) % testimonials.length;
+      updateTestimonialPosition();
+    });
+
+    // FAQ toggle
+    const faqItems = document.querySelectorAll('.faq-item');
+    faqItems.forEach(item => {
+      const question = item.querySelector('.faq-question');
+      question.addEventListener('click', () => {
+        item.classList.toggle('active');
+      });
+      question.addEventListener
