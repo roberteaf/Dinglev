@@ -1,756 +1,783 @@
-<!DOCTYPE html>
-<html lang="en" >
+<!doctype html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Donut Flip - DonutSMP</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Space Mines & Plinko</title>
   <style>
-    /* Reset */
-    *, *::before, *::after {
-      box-sizing: border-box;
+    :root {
+      --bg1: #a0eaff;
+      --bg2: #ff9aa2;
+      --accent: #7af0c2;
+      --muted: #8fa3b3;
+      --card-bg: #0b0d18;
+      --glass: rgba(255,255,255,0.02);
     }
+    * { box-sizing: border-box; margin:0; padding:0; }
+    html, body { height:100%; }
     body {
-      margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #fffbf3;
-      color: #3a3a3a;
-      scroll-behavior: smooth;
+      background: linear-gradient(135deg, var(--bg1), var(--bg2));
+      background-size: 400% 400%;
+      animation: bgShift 20s ease infinite;
+      color: #e6eef8;
+      min-height:100vh;
+      font-family: Inter, system-ui, sans-serif;
     }
-    a {
-      color: inherit;
-      text-decoration: none;
+    @keyframes bgShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
-    /* Header */
-    header {
-      position: sticky;
-      top: 0;
-      background: #ff6f61;
-      padding: 15px 30px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      z-index: 1000;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      transition: background 0.3s ease;
+    .topbar {
+      position:fixed;
+      top:18px; left:18px;
+      z-index:10;
+      display:flex;
+      gap:10px;
     }
-    header.scrolled {
-      background: #ff503e;
-    }
-    header h1 {
+    .switch-btn {
+      background: var(--card-bg);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      padding: 10px 18px;
       font-weight: 700;
-      font-size: 1.8rem;
-      letter-spacing: 2px;
-      color: white;
-      cursor: default;
-    }
-    nav a {
-      color: white;
-      margin-left: 25px;
-      font-weight: 600;
-      font-size: 1rem;
-      position: relative;
-      transition: color 0.3s ease;
-    }
-    nav a::after {
-      content: '';
-      position: absolute;
-      width: 0;
-      height: 2px;
-      background: white;
-      left: 0;
-      bottom: -6px;
-      transition: width 0.3s ease;
-    }
-    nav a:hover, nav a.active {
-      color: #ffe9e6;
-    }
-    nav a:hover::after, nav a.active::after {
-      width: 100%;
-    }
-
-    /* Container */
-    main {
-      max-width: 1100px;
-      margin: 60px auto 80px auto;
-      padding: 0 20px;
-    }
-
-    /* Hero Section */
-    .hero {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: 30px;
-      padding-bottom: 80px;
-    }
-    .hero img {
-      max-width: 300px;
-      animation: float 4s ease-in-out infinite;
-      border-radius: 20px;
-      box-shadow: 0 10px 20px rgba(255, 111, 97, 0.4);
-    }
-    @keyframes float {
-      0%, 100% {
-        transform: translateY(0);
-      }
-      50% {
-        transform: translateY(-20px);
-      }
-    }
-    .hero h2 {
-      font-size: 3rem;
-      color: #ff6f61;
-      letter-spacing: 1.5px;
-      font-weight: 900;
-      line-height: 1.1;
-      max-width: 600px;
-    }
-    .hero p {
-      font-size: 1.3rem;
-      max-width: 600px;
-      color: #555;
-      line-height: 1.6;
-    }
-    .btn-flip {
-      background: #ff6f61;
-      border: none;
-      padding: 18px 50px;
-      border-radius: 40px;
-      color: white;
-      font-size: 1.2rem;
-      font-weight: 700;
+      font-size: 16px;
       cursor: pointer;
-      box-shadow: 0 6px 15px rgba(255, 111, 97, 0.5);
-      transition: background 0.3s ease, box-shadow 0.3s ease;
-      user-select: none;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      transition: background 0.2s, color 0.2s;
     }
-    .btn-flip:hover {
-      background: #ff503e;
-      box-shadow: 0 8px 22px rgba(255, 80, 30, 0.7);
+    .switch-btn.active {
+      background: var(--accent);
+      color: #0b0d18;
     }
-
-    /* Features Section */
-    section.features {
-      display: grid;
-      grid-template-columns: repeat(auto-fit,minmax(260px,1fr));
-      gap: 40px;
-      padding-bottom: 80px;
+    .container {
+      width:100%;
+      max-width:1000px;
+      margin:80px auto 0 auto;
+      display:grid;
+      grid-template-columns: 420px 1fr;
+      gap:20px;
     }
-    .feature-item {
-      background: white;
-      border-radius: 15px;
-      box-shadow: 0 8px 20px rgba(255, 111, 97, 0.1);
-      padding: 30px;
-      text-align: center;
-      transition: transform 0.3s ease;
-      cursor: default;
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)), var(--card-bg);
+      border-radius:12px;
+      padding:18px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.04);
+      border:1px solid rgba(255,255,255,0.03);
+      display:flex;
+      flex-direction:column;
+      gap:14px;
     }
-    .feature-item:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 15px 30px rgba(255, 111, 97, 0.2);
+    .hidden { display:none !important; }
+    /* Mines game styles (copied from your code) */
+    .balance {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
     }
-    .feature-icon {
-      font-size: 3.8rem;
-      margin-bottom: 20px;
-      color: #ff6f61;
+    .balance .amount {
+      font-size:28px;
+      font-weight:700;
+      color: var(--accent);
     }
-    .feature-title {
-      font-weight: 700;
-      font-size: 1.4rem;
-      margin-bottom: 12px;
-      color: #ff503e;
+    .balance .label {
+      color: var(--muted);
+      font-size:13px;
     }
-    .feature-desc {
-      font-size: 1rem;
-      color: #555;
-      line-height: 1.5;
+    input[type=number] {
+      width:140px;
+      padding:10px 12px;
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,0.04);
+      background:transparent;
+      color:inherit;
+      font-weight:600;
+      transition: border-color 0.3s;
     }
-
-    /* How it works */
-    section.how-it-works {
-      padding-bottom: 80px;
-    }
-    .how-it-works h3 {
-      text-align: center;
-      font-size: 2.2rem;
-      color: #ff6f61;
-      margin-bottom: 50px;
-      font-weight: 800;
-    }
-    .steps {
-      display: flex;
-      flex-direction: column;
-      gap: 30px;
-    }
-    @media(min-width: 768px) {
-      .steps {
-        flex-direction: row;
-        justify-content: space-between;
-      }
-    }
-    .step {
-      background: white;
-      border-radius: 20px;
-      box-shadow: 0 8px 20px rgba(255, 111, 97, 0.1);
-      padding: 25px 30px;
-      flex: 1;
-      text-align: center;
-      transition: transform 0.3s ease;
-    }
-    .step:hover {
-      transform: translateY(-10px);
-      box-shadow: 0 18px 40px rgba(255, 111, 97, 0.2);
-    }
-    .step-number {
-      font-size: 3rem;
-      font-weight: 900;
-      color: #ff6f61;
-      margin-bottom: 15px;
-      user-select: none;
-    }
-    .step-title {
-      font-weight: 700;
-      font-size: 1.3rem;
-      margin-bottom: 10px;
-      color: #ff503e;
-    }
-    .step-desc {
-      font-size: 1rem;
-      color: #555;
-      line-height: 1.5;
-      margin-bottom: 15px;
-    }
-    .step img {
-      max-width: 100%;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(255, 111, 97, 0.15);
-    }
-
-    /* Download Section */
-    section.download {
-      text-align: center;
-      padding-bottom: 80px;
-      background: #ff6f61;
-      color: white;
-      border-radius: 25px;
-      padding: 60px 30px;
-      box-shadow: 0 12px 40px rgba(255, 111, 97, 0.3);
-    }
-    section.download h3 {
-      font-size: 2.4rem;
-      font-weight: 900;
-      margin-bottom: 20px;
-      letter-spacing: 1.2px;
-    }
-    section.download p {
-      font-size: 1.1rem;
-      margin-bottom: 40px;
-      max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
-      line-height: 1.6;
-      color: #ffe9e6;
-    }
-    .download-buttons {
-      display: flex;
-      justify-content: center;
-      gap: 30px;
-      flex-wrap: wrap;
-    }
-    .btn-download {
-      background: white;
-      color: #ff6f61;
-      padding: 18px 40px;
-      border-radius: 40px;
-      font-weight: 700;
-      font-size: 1.2rem;
-      cursor: pointer;
-      box-shadow: 0 6px 20px rgba(255, 111, 97, 0.6);
-      border: none;
-      transition: background 0.3s ease, color 0.3s ease;
-      user-select: none;
-    }
-    .btn-download:hover {
-      background: #ffe9e6;
-      color: #ff503e;
-      box-shadow: 0 10px 30px rgba(255, 80, 30, 0.7);
-    }
-    .sys-req {
-      margin-top: 30px;
-      font-size: 0.9rem;
-      color: #ffe9e6cc;
-    }
-
-    /* Testimonials */
-    section.testimonials {
-      max-width: 900px;
-      margin: 0 auto 80px auto;
-      padding: 0 20px;
-    }
-    section.testimonials h3 {
-      text-align: center;
-      font-size: 2.2rem;
-      color: #ff6f61;
-      font-weight: 800;
-      margin-bottom: 50px;
-    }
-    .testimonial-slider {
-      position: relative;
-      overflow: hidden;
-    }
-    .testimonial-track {
-      display: flex;
-      transition: transform 0.5s ease;
-    }
-    .testimonial {
-      background: white;
-      box-shadow: 0 10px 30px rgba(255, 111, 97, 0.1);
-      border-radius: 20px;
-      padding: 30px 40px;
-      flex: 0 0 100%;
-      max-width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      text-align: center;
-    }
-    .testimonial p {
-      font-size: 1.1rem;
-      color: #555;
-      line-height: 1.5;
-      font-style: italic;
-    }
-    .testimonial-author {
-      font-weight: 700;
-      color: #ff6f61;
-      font-size: 1.1rem;
-      user-select: none;
-    }
-    .testimonial-controls {
-      margin-top: 20px;
-      text-align: center;
-    }
-    .testimonial-controls button {
-      background: #ff6f61;
-      border: none;
-      color: white;
-      font-weight: 700;
-      padding: 8px 16px;
-      margin: 0 10px;
-      border-radius: 30px;
-      cursor: pointer;
-      transition: background 0.3s ease;
-      user-select: none;
-    }
-    .testimonial-controls button:hover {
-      background: #ff503e;
-    }
-
-    /* FAQ Section */
-    section.faq {
-      max-width: 900px;
-      margin: 0 auto 80px auto;
-      padding: 0 20px;
-    }
-    section.faq h3 {
-      text-align: center;
-      font-size: 2.2rem;
-      color: #ff6f61;
-      font-weight: 800;
-      margin-bottom: 50px;
-    }
-    .faq-item {
-      background: white;
-      border-radius: 15px;
-      margin-bottom: 15px;
-      box-shadow: 0 8px 25px rgba(255, 111, 97, 0.1);
-      overflow: hidden;
-    }
-    .faq-question {
-      padding: 20px 30px;
-      cursor: pointer;
-      font-weight: 700;
-      color: #ff503e;
-      font-size: 1.1rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      user-select: none;
-    }
-    .faq-question:hover {
-      background: #ffedea;
-    }
-    .faq-answer {
-      padding: 0 30px 20px 30px;
-      font-size: 1rem;
-      color: #555;
-      line-height: 1.5;
-      display: none;
-      user-select: text;
-    }
-    .faq-item.active .faq-answer {
-      display: block;
-    }
-    .faq-icon {
-      font-size: 1.3rem;
-      transition: transform 0.3s ease;
-    }
-    .faq-item.active .faq-icon {
-      transform: rotate(45deg);
-    }
-
-    /* Contact Section */
-    section.contact {
-      max-width: 900px;
-      margin: 0 auto 100px auto;
-      padding: 0 20px;
-    }
-    section.contact h3 {
-      text-align: center;
-      font-size: 2.2rem;
-      color: #ff6f61;
-      font-weight: 800;
-      margin-bottom: 50px;
-    }
-    form.contact-form {
-      background: white;
-      padding: 40px 30px;
-      border-radius: 20px;
-      box-shadow: 0 8px 25px rgba(255, 111, 97, 0.1);
-      max-width: 600px;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-    form.contact-form label {
-      font-weight: 700;
-      color: #ff503e;
-      font-size: 1rem;
-    }
-    form.contact-form input,
-    form.contact-form textarea {
-      padding: 12px 15px;
-      border: 2px solid #ff6f61;
-      border-radius: 12px;
-      font-size: 1rem;
-      resize: vertical;
-      font-family: inherit;
-      transition: border-color 0.3s ease;
-    }
-    form.contact-form input:focus,
-    form.contact-form textarea:focus {
-      border-color: #ff503e;
+    input[type=number]:focus {
+      border-color: var(--accent);
       outline: none;
     }
-    form.contact-form button {
-      background: #ff6f61;
-      color: white;
-      border: none;
-      padding: 15px 0;
-      font-size: 1.1rem;
-      font-weight: 800;
-      border-radius: 40px;
-      cursor: pointer;
-      box-shadow: 0 6px 15px rgba(255, 111, 97, 0.5);
-      transition: background 0.3s ease;
-      user-select: none;
+    button {
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      color:inherit;
+      border:1px solid rgba(255,255,255,0.04);
+      padding:10px 12px;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:700;
+      transition: transform 0.15s, box-shadow 0.15s;
     }
-    form.contact-form button:hover {
-      background: #ff503e;
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 22px rgba(0,0,0,0.7);
     }
-    .form-success {
-      color: #28a745;
-      font-weight: 700;
-      text-align: center;
-      margin-top: 15px;
-      display: none;
+    .btn-primary {
+      background: linear-gradient(90deg, var(--accent), #a0f9d8);
+      border:none;
+      color:#0b0d18;
+      box-shadow: 0 6px 18px rgba(122,240,194,0.2);
     }
-    .form-error {
-      color: #dc3545;
-      font-weight: 700;
-      text-align: center;
-      margin-top: 15px;
-      display: none;
+    .toggle {
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px;
+      border-radius:10px;
+      background: var(--glass);
+      border:1px solid rgba(255,255,255,0.02);
     }
-
-    /* Footer */
-    footer {
-      background: #ffe9e6;
-      color: #aa4d44;
-      padding: 20px 30px;
-      text-align: center;
-      font-weight: 600;
-      user-select: none;
-      box-shadow: inset 0 1px 3px rgba(255, 111, 97, 0.15);
+    .toggle input {
+      width:16px; height:16px;
     }
-    footer .social-links {
-      margin-top: 10px;
+    .toggle span {
+      color: var(--muted);
+      font-size:13px;
+    }
+    .grid {
+      display:grid;
+      grid-template-columns: repeat(5,1fr);
+      gap:6px;
+      margin-top:12px;
+    }
+    .cell {
+      position: relative;
+      background: var(--glass);
+      border-radius:8px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:18px;
+      cursor:pointer;
+      user-select:none;
+      aspect-ratio:1;
+      overflow:hidden;
+      transition: background 0.3s;
+    }
+    .cell:hover {
+      background: rgba(255,255,255,0.06);
+    }
+    .cell.revealed {
+      cursor: default;
+      background: rgba(255,255,255,0.08);
+    }
+    .cell.mine {
+      background: linear-gradient(135deg, #001a33, #004f66);
+      color: #ff6666;
+    }
+    .cell.safe {
+      background: linear-gradient(135deg, #002244, #33cc88);
+      color: #ccffee;
+    }
+    .cell .inner {
+      transform: scale(0);
+      transition: transform 0.3s ease-out;
+      z-index:5;
+    }
+    .cell.revealed .inner {
+      transform: scale(1);
+    }
+    .history {
+      margin-top:12px;
+      max-height:300px;
+      overflow:auto;
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));
+      border-radius:10px;
+      padding:10px;
+    }
+    .history-item {
+      display:flex;
+      justify-content:space-between;
+      padding:6px;
+      border-radius:8px;
+      margin-bottom:6px;
+      transition: background 0.3s;
+    }
+    .history-item.win {
+      background: linear-gradient(90deg, rgba(64,255,192,0.05), rgba(255,255,255,0.01));
+    }
+    .history-item.loss {
+      background: linear-gradient(90deg, rgba(255,72,72,0.04), rgba(255,255,255,0.01));
+    }
+    .small { font-size:12px; color: var(--muted); }
+    /* Plinko styles */
+    .plinko-canvas {
+      width: 100%;
+      height: 500px;
+      background: linear-gradient(180deg, #0b0d18 80%, #1a2a38 100%);
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.7);
+      display: block;
+      margin: 0 auto;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    .plinko-payouts {
       display: flex;
-      justify-content: center;
-      gap: 25px;
+      justify-content: space-between;
+      margin-top: 10px;
+      gap: 2px;
     }
-    footer .social-links a {
-      font-size: 1.5rem;
-      color: #aa4d44;
-      transition: color 0.3s ease;
+    .plinko-payout {
+      flex: 1;
+      text-align: center;
+      font-weight: bold;
+      color: var(--accent);
+      background: rgba(255,255,255,0.03);
+      border-radius: 6px;
+      padding: 4px 0;
+      font-size: 15px;
     }
-    footer .social-links a:hover {
-      color: #ff6f61;
+    .plinko-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 10px;
     }
-
-    /* Responsive */
-    @media (max-width: 600px) {
-      .hero h2 {
-        font-size: 2rem;
-      }
-      .hero p {
-        font-size: 1rem;
-      }
-      .feature-item {
-        padding: 20px;
-      }
-      section.download {
-        padding: 40px 20px;
-      }
-      section.download h3 {
-        font-size: 1.8rem;
-      }
-      section.download p {
-        font-size: 1rem;
-      }
+    .plinko-history {
+      margin-top: 12px;
+      max-height: 120px;
+      overflow: auto;
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 13px;
+      color: var(--muted);
     }
   </style>
 </head>
 <body>
-  <header id="header">
-    <h1>Donut Flip</h1>
-    <nav>
-      <a href="#hero" class="active">Home</a>
-      <a href="#features">Features</a>
-      <a href="#how-it-works">How It Works</a>
-      <a href="#download">Download</a>
-      <a href="#testimonials">Testimonials</a>
-      <a href="#faq">FAQ</a>
-      <a href="#contact">Contact</a>
-    </nav>
-  </header>
-
-  <main>
-    <!-- Hero -->
-    <section id="hero" class="hero" aria-label="Hero Section">
-      <img src="https://i.imgur.com/hw9T7Yo.png" alt="Donut Flip game screenshot or logo" />
-      <h2>Donut Flip for DonutSMP</h2>
-      <p>Experience the ultimate flip mechanics for DonutSMP. Flip your donuts with style and precision! Custom-built for the DonutSMP community to enhance your gameplay.</p>
-      <button class="btn-flip" aria-label="Flip a donut" onclick="alert('Donut flipped! 🍩')">Flip a Donut</button>
-    </section>
-
-    <!-- Features -->
-    <section id="features" class="features" aria-label="Features Section">
-      <div class="feature-item" tabindex="0" aria-describedby="feature1-desc">
-        <div class="feature-icon" aria-hidden="true">🍩</div>
-        <h3 class="feature-title">Smooth Controls</h3>
-        <p class="feature-desc" id="feature1-desc">Seamless and intuitive donut flipping controls for a fluid gameplay experience.</p>
-      </div>
-      <div class="feature-item" tabindex="0" aria-describedby="feature2-desc">
-        <div class="feature-icon" aria-hidden="true">⚡</div>
-        <h3 class="feature-title">Fast Performance</h3>
-        <p class="feature-desc" id="feature2-desc">Optimized code ensures the game runs smoothly even on lower-end devices.</p>
-      </div>
-      <div class="feature-item" tabindex="0" aria-describedby="feature3-desc">
-        <div class="feature-icon" aria-hidden="true">🎨</div>
-        <h3 class="feature-title">Custom Skins</h3>
-        <p class="feature-desc" id="feature3-desc">Personalize your donuts with exclusive skins and colors.</p>
-      </div>
-      <div class="feature-item" tabindex="0" aria-describedby="feature4-desc">
-        <div class="feature-icon" aria-hidden="true">🌐</div>
-        <h3 class="feature-title">Multiplayer Mode</h3>
-        <p class="feature-desc" id="feature4-desc">Challenge your friends and compete in real-time donut flipping battles.</p>
-      </div>
-    </section>
-
-    <!-- How It Works -->
-    <section id="how-it-works" class="how-it-works" aria-label="How It Works Section">
-      <h3>How It Works</h3>
-      <div class="steps">
-        <div class="step" tabindex="0" aria-describedby="step1-desc">
-          <div class="step-number" aria-hidden="true">1</div>
-          <h4 class="step-title">Download & Install</h4>
-          <p class="step-desc" id="step1-desc">Get the Donut Flip mod for DonutSMP from our official site and install it easily.</p>
-          <img src="https://i.imgur.com/VyRHW4g.png" alt="Download illustration" />
+  <div class="topbar">
+    <button class="switch-btn active" id="btnMines">Mines</button>
+    <button class="switch-btn" id="btnPlinko">Plinko</button>
+  </div>
+  <div class="container">
+    <!-- Mines Game -->
+    <div class="card left-col" id="minesGame">
+      <div class="balance">
+        <div>
+          <div class="label">Balance</div>
+          <div class="amount" id="balanceDisplay">1,000,000</div>
         </div>
-        <div class="step" tabindex="0" aria-describedby="step2-desc">
-          <div class="step-number" aria-hidden="true">2</div>
-          <h4 class="step-title">Customize Your Donuts</h4>
-          <p class="step-desc" id="step2-desc">Choose from multiple skins and styles to make your donuts unique.</p>
-          <img src="https://i.imgur.com/vO66RYp.png" alt="Customization illustration" />
-        </div>
-        <div class="step" tabindex="0" aria-describedby="step3-desc">
-          <div class="step-number" aria-hidden="true">3</div>
-          <h4 class="step-title">Flip & Compete</h4>
-          <p class="step-desc" id="step3-desc">Use precise controls to flip your donuts and compete against others.</p>
-          <img src="https://i.imgur.com/ktkpU9g.png" alt="Gameplay illustration" />
+        <div>
+          <label class="toggle" title="Infinite money (fun mode)">
+            <input id="infiniteToggle" type="checkbox" />
+            <span class="small">Infinite</span>
+          </label>
         </div>
       </div>
-    </section>
-
-    <!-- Download -->
-    <section id="download" class="download" aria-label="Download Section">
-      <h3>Download Donut Flip Now</h3>
-      <p>Available for Windows, macOS, and Linux. Download now and start flipping!</p>
-      <div class="download-buttons">
-        <button class="btn-download" onclick="alert('Downloading for Windows...')">Windows</button>
-        <button class="btn-download" onclick="alert('Downloading for macOS...')">macOS</button>
-        <button class="btn-download" onclick="alert('Downloading for Linux...')">Linux</button>
+      <div class="small muted" style="margin-top:8px;">
+        Reveal tiles â avoid mines! Cash out before you explode.
       </div>
-      <p class="sys-req">System Requirements: Windows 7+, macOS 10.12+, Linux Kernel 4.15+ | 2GB RAM | 200MB Disk Space</p>
-    </section>
-
-    <!-- Testimonials -->
-    <section id="testimonials" class="testimonials" aria-label="Testimonials Section">
-      <h3>What Players Say</h3>
-      <div class="testimonial-slider" aria-live="polite" aria-atomic="true">
-        <div class="testimonial-track" id="testimonial-track">
-          <div class="testimonial" tabindex="0">
-            <p>"Donut Flip completely changed how I play on DonutSMP. So smooth and fun!"</p>
-            <div class="testimonial-author">- Alex</div>
-          </div>
-          <div class="testimonial" tabindex="0">
-            <p>"The multiplayer mode is awesome. Challenging friends has never been this tasty!"</p>
-            <div class="testimonial-author">- Jamie</div>
-          </div>
-          <div class="testimonial" tabindex="0">
-            <p>"Love the custom skins! Makes every flip feel personal."</p>
-            <div class="testimonial-author">- Casey</div>
-          </div>
-        </div>
+      <div class="grid" id="grid"></div>
+      <div style="margin-top:12px; display:flex; gap:12px; align-items:center;">
+        <button id="cashoutBtn" class="btn-primary" disabled>Cash Out</button>
+        <div id="statusLabel" class="small"></div>
       </div>
-      <div class="testimonial-controls">
-        <button aria-label="Previous testimonial" id="prev-testimonial">← Prev</button>
-        <button aria-label="Next testimonial" id="next-testimonial">Next →</button>
-      </div>
-    </section>
-
-    <!-- FAQ -->
-    <section id="faq" class="faq" aria-label="Frequently Asked Questions">
-      <h3>Frequently Asked Questions</h3>
-      <div class="faq-item">
-        <div class="faq-question" tabindex="0">
-          What platforms does Donut Flip support?
-          <span class="faq-icon" aria-hidden="true">+</span>
-        </div>
-        <div class="faq-answer">
-          Donut Flip is available on Windows, macOS, and Linux.
-        </div>
-      </div>
-      <div class="faq-item">
-        <div class="faq-question" tabindex="0">
-          Is multiplayer mode free to use?
-          <span class="faq-icon" aria-hidden="true">+</span>
-        </div>
-        <div class="faq-answer">
-          Yes! Multiplayer mode is free and included in the main download.
-        </div>
-      </div>
-      <div class="faq-item">
-        <div class="faq-question" tabindex="0">
-          Can I customize my donuts?
-          <span class="faq-icon" aria-hidden="true">+</span>
-        </div>
-        <div class="faq-answer">
-          Absolutely! Choose from many skins and colors to personalize your donuts.
-        </div>
-      </div>
-    </section>
-
-    <!-- Contact -->
-    <section id="contact" class="contact" aria-label="Contact Section">
-      <h3>Contact Us</h3>
-      <form class="contact-form" id="contact-form" novalidate>
-        <label for="name">Name *</label>
-        <input id="name" name="name" type="text" placeholder="Your full name" required />
-        
-        <label for="email">Email *</label>
-        <input id="email" name="email" type="email" placeholder="your.email@example.com" required />
-        
-        <label for="message">Message *</label>
-        <textarea id="message" name="message" rows="5" placeholder="Your message here..." required></textarea>
-        
-        <button type="submit">Send Message</button>
-        <div class="form-success" id="form-success">Thank you for contacting us! We'll get back soon.</div>
-        <div class="form-error" id="form-error">Please fill all fields correctly.</div>
-      </form>
-    </section>
-  </main>
-
-  <footer>
-    &copy; 2025 Donut Flip • Made for DonutSMP
-    <div class="social-links" aria-label="Social Media Links">
-      <a href="#" aria-label="Twitter" title="Twitter">🐦</a>
-      <a href="#" aria-label="Discord" title="Discord">💬</a>
-      <a href="#" aria-label="GitHub" title="GitHub">🐙</a>
     </div>
-  </footer>
+    <div class="card right-col" id="minesControls">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="flex:1">
+          <div class="label small">Bet</div>
+          <input type="number" id="betInput" min="1" step="1" value="1000" />
+        </div>
+        <div>
+          <label class="toggle">
+            <input type="number" id="mineCount" value="3" min="1" max="10" style="width:60px;" />
+            <span class="small">Mines</span>
+          </label>
+        </div>
+      </div>
+      <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+        <button id="startBtn" class="btn-primary" style="flex:1;">Start Game</button>
+        <label class="toggle">
+          <input type="checkbox" id="autoCashout" />
+          <span class="small">Auto Cashout</span>
+        </label>
+      </div>
+      <div style="margin-top:12px; flex:1;">
+        <div class="small muted">History</div>
+        <div class="history" id="history"></div>
+      </div>
+    </div>
+    <!-- Plinko Game -->
+    <div class="card left-col hidden" id="plinkoGame">
+      <div class="balance">
+        <div>
+          <div class="label">Balance</div>
+          <div class="amount" id="plinkoBalanceDisplay">1,000,000</div>
+        </div>
+        <div>
+          <label class="toggle" title="Infinite money (fun mode)">
+            <input id="plinkoInfiniteToggle" type="checkbox" />
+            <span class="small">Infinite</span>
+          </label>
+        </div>
+      </div>
+      <div class="small muted" style="margin-top:8px;">
+        Drop the ball! Where will it land?
+      </div>
+      <canvas class="plinko-canvas" id="plinkoCanvas" width="350" height="500"></canvas>
+      <div class="plinko-payouts" id="plinkoPayouts"></div>
+      <div class="plinko-controls">
+        <div>
+          <div class="label small">Bet</div>
+          <input type="number" id="plinkoBetInput" min="1" step="1" value="1000" />
+        </div>
+        <button id="plinkoDropBtn" class="btn-primary">Drop Ball</button>
+      </div>
+      <div class="plinko-history" id="plinkoHistory"></div>
+    </div>
+    <div class="card right-col hidden" id="plinkoControls">
+      <div class="small muted">Plinko Info</div>
+      <div style="margin-top:10px;">
+        <div class="small">Payouts increase as you go outwards. Middle slot pays 0.2x, next 0.5x, then 1x, 2x, and 10x at the edges.</div>
+        <div class="small" style="margin-top:10px;">Try to hit the sides for big wins!</div>
+      </div>
+    </div>
+  </div>
+<script>
+(() => {
+  // --- Shared Economy State ---
+  const STORAGE_KEY = 'mines_plinko_econ_v1';
+  const defaultState = {
+    balance: 1_000_000,
+    infinite: true,
+    history: [],
+    plinkoHistory: []
+  };
+  let state = loadState();
 
-  <script>
-    // Sticky header background change on scroll
-    const header = document.getElementById('header');
-    window.addEventListener('scroll', () => {
-      if(window.scrollY > 50) {
-        header.classList.add('scrolled');
-      } else {
-        header.classList.remove('scrolled');
+  function loadState(){
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return {...defaultState};
+      const p = JSON.parse(raw);
+      p.balance = typeof p.balance === 'number' ? p.balance : defaultState.balance;
+      p.infinite = !!p.infinite;
+      p.history = Array.isArray(p.history) ? p.history : [];
+      p.plinkoHistory = Array.isArray(p.plinkoHistory) ? p.plinkoHistory : [];
+      return p;
+    } catch(e) {
+      return {...defaultState};
+    }
+  }
+  function saveState(){
+    const to = {
+      balance: state.balance,
+      infinite: state.infinite,
+      history: state.history.slice(-200),
+      plinkoHistory: state.plinkoHistory.slice(-100)
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(to));
+  }
+  function fmt(n){
+    if (n === Infinity) return 'â';
+    return n >= 1000 ? n.toLocaleString() : '' + n;
+  }
+
+  // --- UI Switch ---
+  const btnMines = document.getElementById('btnMines');
+  const btnPlinko = document.getElementById('btnPlinko');
+  const minesGame = document.getElementById('minesGame');
+  const minesControls = document.getElementById('minesControls');
+  const plinkoGame = document.getElementById('plinkoGame');
+  const plinkoControls = document.getElementById('plinkoControls');
+
+  function showGame(game) {
+    if (game === 'mines') {
+      minesGame.classList.remove('hidden');
+      minesControls.classList.remove('hidden');
+      plinkoGame.classList.add('hidden');
+      plinkoControls.classList.add('hidden');
+      btnMines.classList.add('active');
+      btnPlinko.classList.remove('active');
+      renderBalance();
+    } else {
+      minesGame.classList.add('hidden');
+      minesControls.classList.add('hidden');
+      plinkoGame.classList.remove('hidden');
+      plinkoControls.classList.remove('hidden');
+      btnMines.classList.remove('active');
+      btnPlinko.classList.add('active');
+      renderPlinkoBalance();
+    }
+  }
+  btnMines.onclick = () => showGame('mines');
+  btnPlinko.onclick = () => showGame('plinko');
+
+  // --- Mines Game (from your code, slightly adapted for shared balance) ---
+  const balanceDisplay = document.getElementById('balanceDisplay');
+  const infiniteToggle = document.getElementById('infiniteToggle');
+  const betInput = document.getElementById('betInput');
+  const startBtn = document.getElementById('startBtn');
+  const mineCountInput = document.getElementById('mineCount');
+  const autoCashout = document.getElementById('autoCashout');
+  const gridEl = document.getElementById('grid');
+  const cashoutBtn = document.getElementById('cashoutBtn');
+  const statusLabel = document.getElementById('statusLabel');
+  const historyEl = document.getElementById('history');
+
+  function renderBalance(){
+    balanceDisplay.textContent = state.infinite ? 'â' : fmt(state.balance);
+  }
+  function renderHistory(){
+    historyEl.innerHTML = '';
+    const items = state.history.slice().reverse();
+    if (items.length === 0) {
+      historyEl.innerHTML = `<div class="small muted">No history yet.</div>`;
+      return;
+    }
+    for (const it of items) {
+      const el = document.createElement('div');
+      el.className = 'history-item ' + (it.profit >= 0 ? 'win' : 'loss');
+      el.innerHTML = `
+        <div>${it.result}</div>
+        <div>${it.profit >= 0 ? '+' : ''}${fmt(it.profit)}</div>
+      `;
+      historyEl.appendChild(el);
+    }
+  }
+
+  let game = null;
+  function resetGame(){
+    game = null;
+    gridEl.innerHTML = '';
+    cashoutBtn.disabled = true;
+    statusLabel.textContent = '';
+  }
+  function startGame(){
+    resetGame();
+    const bet = Math.floor(Number(betInput.value));
+    if (!Number.isFinite(bet) || bet < 1) {
+      alert('Enter a valid bet');
+      return;
+    }
+    if (!state.infinite && bet > state.balance) {
+      alert('Not enough balance');
+      return;
+    }
+    const mines = Math.floor(Number(mineCountInput.value));
+    if (!Number.isFinite(mines) || mines < 1 || mines >= 25) {
+      alert('Mines must be between 1 and 24');
+      return;
+    }
+    const total = 25;
+    const minePos = new Set();
+    while (minePos.size < mines) {
+      minePos.add(Math.floor(Math.random() * total));
+    }
+    game = { bet, mines, minePos, opened: new Set(), currentPayout: 0 };
+    if (!state.infinite) {
+      state.balance -= bet;
+    }
+    for (let i=0; i<25; i++){
+      const c = document.createElement('div');
+      c.className = 'cell';
+      c.dataset.idx = i;
+      c.addEventListener('click', cellClick);
+      const inner = document.createElement('div');
+      inner.className = 'inner';
+      c.appendChild(inner);
+      gridEl.appendChild(c);
+    }
+    cashoutBtn.disabled = false;
+    statusLabel.textContent = `Opened 0 safe / ${mines} mines`;
+    renderBalance();
+    saveState();
+  }
+  function cellClick(ev){
+    if (!game) return;
+    const idx = +ev.currentTarget.dataset.idx;
+    if (game.opened.has(idx)) return;
+    game.opened.add(idx);
+    const cell = ev.currentTarget;
+    const inner = cell.querySelector('.inner');
+    if (game.minePos.has(idx)) {
+      cell.classList.add('revealed', 'mine');
+      inner.textContent = 'ð£';
+      endGame(false);
+    } else {
+      cell.classList.add('revealed', 'safe');
+      inner.textContent = '';
+      const safeCount = game.opened.size;
+      statusLabel.textContent = `Opened ${safeCount} safe / ${game.mines} mines`;
+      const multiplier = 1 + safeCount * 0.1;
+      game.currentPayout = game.bet * multiplier;
+      if (autoCashout.checked) {
+        cashOut();
       }
-    });
+    }
+  }
+  function endGame(win){
+    for (const idx of game.minePos) {
+      const c = gridEl.querySelector(`.cell[data-idx='${idx}']`);
+      if (c && !c.classList.contains('revealed')) {
+        c.classList.add('revealed','mine');
+        c.querySelector('.inner').textContent = 'ð£';
+      }
+    }
+    cashoutBtn.disabled = true;
+    if (!win) {
+      statusLabel.textContent = `ð¥ Boom! You lost -${fmt(game.bet)}`;
+      state.history.push({ result: 'Loss', profit: -game.bet });
+    }
+    renderBalance();
+    renderHistory();
+    saveState();
+    game = null;
+  }
+  function cashOut(){
+    if (!game) return;
+    const profit = Math.floor(game.currentPayout) - game.bet;
+    if (!state.infinite) {
+      state.balance += Math.floor(game.currentPayout);
+    }
+    statusLabel.textContent = `Cashed out +${fmt(profit)}`;
+    state.history.push({ result: 'Win', profit });
+    saveState();
+    renderBalance();
+    renderHistory();
+    endGame(true);
+  }
+  startBtn.addEventListener('click', startGame);
+  cashoutBtn.addEventListener('click', cashOut);
+  infiniteToggle.addEventListener('change', () => {
+    state.infinite = infiniteToggle.checked;
+    renderBalance();
+    saveState();
+  });
 
-    // Navigation active link highlighting on scroll
-    const sections = document.querySelectorAll('main section[id]');
-    const navLinks = document.querySelectorAll('header nav a');
+  // --- Plinko Game ---
+  const plinkoBalanceDisplay = document.getElementById('plinkoBalanceDisplay');
+  const plinkoInfiniteToggle = document.getElementById('plinkoInfiniteToggle');
+  const plinkoBetInput = document.getElementById('plinkoBetInput');
+  const plinkoDropBtn = document.getElementById('plinkoDropBtn');
+  const plinkoCanvas = document.getElementById('plinkoCanvas');
+  const plinkoPayouts = document.getElementById('plinkoPayouts');
+  const plinkoHistory = document.getElementById('plinkoHistory');
 
-    window.addEventListener('scroll', () => {
-      let current = '';
-      sections.forEach(section => {
-        const sectionTop = section.offsetTop - 80;
-        const sectionHeight = section.clientHeight;
-        if(scrollY >= sectionTop && scrollY < sectionTop + sectionHeight) {
-          current = section.getAttribute('id');
+  // Payouts: [left, ..., center, ..., right]
+  const plinkoPayoutArr = [10, 2, 1, 0.5, 0.2, 0.5, 1, 2, 10];
+  function renderPlinkoPayouts() {
+    plinkoPayouts.innerHTML = '';
+    for (let i = 0; i < plinkoPayoutArr.length; ++i) {
+      const div = document.createElement('div');
+      div.className = 'plinko-payout';
+      div.textContent = plinkoPayoutArr[i] + 'x';
+      plinkoPayouts.appendChild(div);
+    }
+  }
+  function renderPlinkoBalance() {
+    plinkoBalanceDisplay.textContent = state.infinite ? 'â' : fmt(state.balance);
+  }
+  function renderPlinkoHistory() {
+    plinkoHistory.innerHTML = '';
+    if (state.plinkoHistory.length === 0) {
+      plinkoHistory.innerHTML = '<div>No history yet.</div>';
+      return;
+    }
+    for (let i = state.plinkoHistory.length - 1; i >= 0; --i) {
+      const h = state.plinkoHistory[i];
+      const color = h.payout > 1 ? 'style="color:#7af0c2;"' : '';
+      plinkoHistory.innerHTML += `<div ${color}>${h.result} (${h.payout}x) ${h.profit >= 0 ? '+' : ''}${fmt(h.profit)}</div>`;
+    }
+  }
+
+  // Plinko physics
+  const ROWS = 8;
+  const COLS = plinkoPayoutArr.length;
+  const PEG_RADIUS = 7;
+  const BALL_RADIUS = 10;
+  const SLOT_HEIGHT = 40;
+  const PEG_Y_START = 60;
+  const CANVAS_W = plinkoCanvas.width;
+  const CANVAS_H = plinkoCanvas.height;
+  const SLOT_W = CANVAS_W / COLS;
+
+  let plinkoBall = null;
+  let plinkoAnim = null;
+
+  function resetPlinko() {
+    plinkoBall = null;
+    if (plinkoAnim) cancelAnimationFrame(plinkoAnim);
+    drawPlinko();
+  }
+
+  function dropPlinkoBall() {
+    if (plinkoBall) return;
+    const bet = Math.floor(Number(plinkoBetInput.value));
+    if (!Number.isFinite(bet) || bet < 1) {
+      alert('Enter a valid bet');
+      return;
+    }
+    if (!state.infinite && bet > state.balance) {
+      alert('Not enough balance');
+      return;
+    }
+    if (!state.infinite) state.balance -= bet;
+    renderPlinkoBalance();
+    saveState();
+
+    // Ball starts at center
+    plinkoBall = {
+      x: CANVAS_W / 2,
+      y: 30,
+      vx: 0,
+      vy: 2,
+      bet: bet,
+      path: [],
+      finished: false
+    };
+    animatePlinko();
+  }
+
+  function animatePlinko() {
+    if (!plinkoBall) return;
+    plinkoBall.vy += 0.08; // gravity
+    plinkoBall.y += plinkoBall.vy;
+    plinkoBall.x += plinkoBall.vx;
+
+    // Collide with pegs
+    for (let row = 0; row < ROWS; ++row) {
+      const y = PEG_Y_START + row * SLOT_HEIGHT;
+      if (Math.abs(plinkoBall.y - y) < PEG_RADIUS + BALL_RADIUS && !plinkoBall.path[row]) {
+        // Pegs are staggered
+        let pegCount = COLS - (row % 2);
+        for (let col = 0; col < pegCount; ++col) {
+          let px = SLOT_W * (col + 0.5) + (row % 2 ? SLOT_W / 2 : 0);
+          let py = y;
+          let dx = plinkoBall.x - px;
+          let dy = plinkoBall.y - py;
+          let dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < PEG_RADIUS + BALL_RADIUS) {
+            // Bounce left or right randomly, but bias to simulate real plinko
+            let dir = Math.random() < 0.5 ? -1 : 1;
+            if (plinkoBall.x < px) dir = -1;
+            if (plinkoBall.x > px) dir = 1;
+            plinkoBall.vx = dir * (Math.random() * 2 + 1.5);
+            plinkoBall.vy *= 0.7;
+            plinkoBall.path[row] = true;
+            break;
+          }
         }
-      });
-      navLinks.forEach(link => {
-        link.classList.remove('active');
-        if(link.getAttribute('href').substring(1) === current) {
-          link.classList.add('active');
-        }
-      });
-    });
-
-    // Testimonials carousel logic
-    const track = document.getElementById('testimonial-track');
-    const testimonials = track.children;
-    const prevBtn = document.getElementById('prev-testimonial');
-    const nextBtn = document.getElementById('next-testimonial');
-    let currentIndex = 0;
-
-    function updateTestimonialPosition() {
-      track.style.transform = `translateX(-${currentIndex * 100}%)`;
+      }
     }
 
-    prevBtn.addEventListener('click', () => {
-      currentIndex = (currentIndex - 1 + testimonials.length) % testimonials.length;
-      updateTestimonialPosition();
-    });
+    // Collide with walls
+    if (plinkoBall.x < BALL_RADIUS) {
+      plinkoBall.x = BALL_RADIUS;
+      plinkoBall.vx = Math.abs(plinkoBall.vx) * 0.7;
+    }
+    if (plinkoBall.x > CANVAS_W - BALL_RADIUS) {
+      plinkoBall.x = CANVAS_W - BALL_RADIUS;
+      plinkoBall.vx = -Math.abs(plinkoBall.vx) * 0.7;
+    }
 
-    nextBtn.addEventListener('click', () => {
-      currentIndex = (currentIndex + 1) % testimonials.length;
-      updateTestimonialPosition();
-    });
+    // Land in slot
+    if (plinkoBall.y > CANVAS_H - 30) {
+      // Find slot
+      let slot = Math.floor(plinkoBall.x / SLOT_W);
+      slot = Math.max(0, Math.min(COLS - 1, slot));
+      let payout = plinkoPayoutArr[slot];
+      let profit = Math.floor(plinkoBall.bet * payout) - plinkoBall.bet;
+      if (!state.infinite) state.balance += Math.floor(plinkoBall.bet * payout);
+      renderPlinkoBalance();
+      saveState();
+      let result = payout > 1 ? 'Win' : (payout === 1 ? 'Push' : 'Loss');
+      state.plinkoHistory.push({ result, payout, profit });
+      renderPlinkoHistory();
+      plinkoBall.finished = true;
+      setTimeout(resetPlinko, 1200);
+    }
 
-    // FAQ toggle
-    const faqItems = document.querySelectorAll('.faq-item');
-    faqItems.forEach(item => {
-      const question = item.querySelector('.faq-question');
-      question.addEventListener('click', () => {
-        item.classList.toggle('active');
-      });
-      question.addEventListener
+    drawPlinko();
+    if (!plinkoBall.finished) {
+      plinkoAnim = requestAnimationFrame(animatePlinko);
+    }
+  }
+
+  function drawPlinko() {
+    const ctx = plinkoCanvas.getContext('2d');
+    ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+    // Draw slots
+    for (let i = 0; i < COLS; ++i) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(122,240,194,0.08)';
+      ctx.fillRect(i * SLOT_W, CANVAS_H - 30, SLOT_W, 30);
+      ctx.restore();
+    }
+    // Draw payout labels
+    ctx.save();
+    ctx.font = 'bold 15px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#7af0c2';
+    for (let i = 0; i < COLS; ++i) {
+      ctx.fillText(plinkoPayoutArr[i] + 'x', i * SLOT_W + SLOT_W / 2, CANVAS_H - 10);
+    }
+    ctx.restore();
+
+    // Draw pegs
+    for (let row = 0; row < ROWS; ++row) {
+      let pegCount = COLS - (row % 2);
+      let y = PEG_Y_START + row * SLOT_HEIGHT;
+      for (let col = 0; col < pegCount; ++col) {
+        let x = SLOT_W * (col + 0.5) + (row % 2 ? SLOT_W / 2 : 0);
+        ctx.beginPath();
+        ctx.arc(x, y, PEG_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff3';
+        ctx.fill();
+        ctx.strokeStyle = '#7af0c2';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+
+    // Draw ball
+    if (plinkoBall) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(plinkoBall.x, plinkoBall.y, BALL_RADIUS, 0, Math.PI * 2);
+      ctx.fillStyle = '#7af0c2';
+      ctx.shadowColor = '#7af0c2';
+      ctx.shadowBlur = 12;
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  plinkoDropBtn.onclick = dropPlinkoBall;
+  plinkoInfiniteToggle.onchange = () => {
+    state.infinite = plinkoInfiniteToggle.checked;
+    renderPlinkoBalance();
+    saveState();
+  };
+
+  // --- Sync infinite toggles and balance ---
+  function syncTogglesAndBalance() {
+    infiniteToggle.checked = state.infinite;
+    plinkoInfiniteToggle.checked = state.infinite;
+    renderBalance();
+    renderPlinkoBalance();
+  }
+
+  // --- Initial Render ---
+  renderBalance();
+  renderHistory();
+  renderPlinkoPayouts();
+  renderPlinkoBalance();
+  renderPlinkoHistory();
+  syncTogglesAndBalance();
+  drawPlinko();
+
+  // --- Keep toggles in sync ---
+  infiniteToggle.addEventListener('change', syncTogglesAndBalance);
+  plinkoInfiniteToggle.addEventListener('change', syncTogglesAndBalance);
+
+  // --- Show Mines by default ---
+  showGame('mines');
+})();
+</script>
+</body>
+</html>
