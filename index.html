@@ -1,15 +1,59 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>">
     <title>Chat Hub 💬</title>
-    <!-- Firebase SDK v12.4.0 -->
+    <!-- Firebase SDK (Modular) -->
     <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js';
-        import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, onSnapshot, query, orderBy, limit, deleteDoc, arrayUnion, getDocs, arrayRemove } from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js';
-        import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js';
-        window.firebaseApp = { initializeApp, getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, onSnapshot, query, orderBy, limit, deleteDoc, arrayUnion, getDocs, arrayRemove, getStorage, ref, uploadBytes, getDownloadURL };
+        // Import Firebase modules
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { 
+            getFirestore, 
+            collection, 
+            doc, 
+            getDoc, 
+            setDoc, 
+            updateDoc, 
+            addDoc, 
+            onSnapshot, 
+            query, 
+            orderBy, 
+            limit, 
+            deleteDoc, 
+            arrayUnion, 
+            getDocs, 
+            arrayRemove 
+        } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+        import { 
+            getStorage, 
+            ref, 
+            uploadBytes, 
+            getDownloadURL 
+        } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAaL7pqKB0fzxURNyblGYKo9q_8UUqj014",
+            authDomain: "idkdikdi-57db9.firebaseapp.com",
+            databaseURL: "https://idkdikdi-57db9-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "idkdikdi-57db9",
+            storageBucket: "idkdikdi-57db9.firebasestorage.app",
+            messagingSenderId: "316879269067",
+            appId: "1:316879269067:web:f69397e5cd00892cebbf4e",
+            measurementId: "G-50NYC4TXYB"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        // Expose Firebase instances for use in other scripts
+        window.app = app;
+        window.db = db;
+        window.storage = storage;
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400&display=swap');
@@ -567,23 +611,33 @@
     </script>
 
     <script type="module">
+        import { 
+            collection, 
+            doc, 
+            getDoc, 
+            setDoc, 
+            updateDoc, 
+            addDoc, 
+            onSnapshot, 
+            query, 
+            orderBy, 
+            limit, 
+            deleteDoc, 
+            arrayUnion, 
+            getDocs, 
+            arrayRemove 
+        } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+        import { 
+            ref, 
+            uploadBytes, 
+            getDownloadURL 
+        } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
+
         console.log('Chat Hub v2 - Global Sync Loaded! 💬');
         
-        const firebaseConfig = {
-            apiKey: "AIzaSyA3Q_Dsp-DXs1DPMGpP5m6ov6SXlNhjLmE",
-            authDomain: "idk123-e1286.firebaseapp.com",
-            projectId: "idk123-e1286",
-            storageBucket: "idk123-e1286.firebasestorage.app",
-            messagingSenderId: "661013440701",
-            appId: "1:661013440701:web:89f99390d5b9b8475c6fd4",
-            measurementId: "G-BBEXPKLP0H"
-        };
-        
-        const { initializeApp, getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, onSnapshot, query, orderBy, limit, deleteDoc, arrayUnion, getDocs, arrayRemove, getStorage, ref, uploadBytes, getDownloadURL } = window.firebaseApp;
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const storage = getStorage(app);
-        
+        // Use Firebase instances from the global scope
+        const { db, storage } = window;
+
         let currentUser = '';
         let currentScreen = 'login';
         let isAdmin = false;
@@ -601,8 +655,7 @@
         let mediaRecorder = null;
         
         const ADMIN_USERS = [
-            { username: 'burst', password: 'burst123' },
-            { username: '2metech77', password: '2metech77special' }
+            { username: 'burst', password: 'burst123' }
         ];
         
         const badWords = ['fuck', 'shit', 'bitch', 'asshole', 'bastard', 'damn', 'cock', 'cunt', 'ass', 'arse', 'bollocks', 'bugger', 'bloody', 'wank', 'piss', 'twat', 'quim', 'nigger', 'fag', 'retard', 'crap', 'pussy', 'dick', 'prick', 'wanker', 'bellend', 'knob', 'tosser'];
@@ -679,7 +732,7 @@
             const q = query(usersRef, limit(100));
             usersUnsub = onSnapshot(q, (snap) => {
                 users = [];
-                snap.docs.forEach((d) => {
+                snap.forEach((d) => {
                     const data = d.data();
                     const username = d.id;
                     if (username !== currentUser && (filter === '' || username.toLowerCase().includes(filter.toLowerCase()))) {
@@ -712,7 +765,7 @@
             const q = query(usersRef, limit(100));
             adminUsersUnsub = onSnapshot(q, (snap) => {
                 adminUsers = [];
-                snap.docs.forEach((d) => {
+                snap.forEach((d) => {
                     const data = d.data();
                     const username = d.id;
                     if (filter === '' || username.toLowerCase().includes(filter.toLowerCase())) {
@@ -744,7 +797,7 @@
             chatsList.innerHTML = '';
             privateChatsUnsub = onSnapshot(collection(db, 'privateMessages'), (snap) => {
                 chatsList.innerHTML = '';
-                snap.docs.forEach((d) => {
+                snap.forEach((d) => {
                     const chatId = d.id;
                     const [user1, user2] = chatId.split('_');
                     const item = document.createElement('div');
@@ -1183,8 +1236,7 @@
         // Automatically create/update admin users on load
         async function ensureAdminUsers() {
             const admins = [
-                { username: 'burst', password: 'burst123' },
-                { username: '2metech77', password: '2metech77special' }
+                { username: 'burst', password: 'burst123' }
             ];
             for (const admin of admins) {
                 const userRef = doc(db, 'users', admin.username);
