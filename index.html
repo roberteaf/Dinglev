@@ -39,7 +39,7 @@
             authDomain: "idkdikdi-57db9.firebaseapp.com",
             databaseURL: "https://idkdikdi-57db9-default-rtdb.europe-west1.firebasedatabase.app",
             projectId: "idkdikdi-57db9",
-            storageBucket: "idkdikdi-57db9.firebasestorage.app",
+            storageBucket: "idkdikdi-57db9.appspot.com",
             messagingSenderId: "316879269067",
             appId: "1:316879269067:web:f69397e5cd00892cebbf4e",
             measurementId: "G-50NYC4TXYB"
@@ -70,19 +70,161 @@
         
         body {
             font-family: 'Orbitron', monospace;
-            background: linear-gradient(135deg, #000000 0%, #001f3f 50%, #7b2cbf 100%);
-            background-size: 400% 400%;
-            animation: gradientShift 15s ease infinite;
+            background: #000;
             color: #ffffff;
             overflow-x: hidden;
             min-height: 100vh;
             position: relative;
         }
         
-        @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+        .stars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .star {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+            opacity: 0.8;
+            animation: twinkle 2s infinite alternate;
+        }
+        
+        @keyframes twinkle {
+            from { opacity: 0.5; }
+            to { opacity: 1; }
+        }
+        
+        .shooting-stars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            z-index: -1;
+        }
+        
+        .shooting-stars span {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 4px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 0 4px rgba(255,255,255,0.1), 0 0 0 8px rgba(255,255,255,0.1), 0 0 20px rgba(255,255,255,0.1);
+            animation: animateShooting 3s linear infinite;
+        }
+        
+        .shooting-stars span::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 300px;
+            height: 1px;
+            background: linear-gradient(90deg, #fff, transparent);
+        }
+        
+        @keyframes animateShooting {
+            0% {
+                transform: rotate(315deg) translateX(0);
+                opacity: 1;
+            }
+            70% {
+                opacity: 1;
+            }
+            100% {
+                transform: rotate(315deg) translateX(-1000px);
+                opacity: 0;
+            }
+        }
+        
+        .shooting-stars span:nth-child(1) {
+            top: 0;
+            right: 0;
+            left: initial;
+            animation-delay: 0s;
+            animation-duration: 1s;
+        }
+        
+        .shooting-stars span:nth-child(2) {
+            top: 0;
+            right: 80px;
+            left: initial;
+            animation-delay: 0.2s;
+            animation-duration: 3s;
+        }
+        
+        .shooting-stars span:nth-child(3) {
+            top: 80px;
+            right: 0;
+            left: initial;
+            animation-delay: 0.4s;
+            animation-duration: 2s;
+        }
+        
+        .shooting-stars span:nth-child(4) {
+            top: 0;
+            right: 180px;
+            left: initial;
+            animation-delay: 0.6s;
+            animation-duration: 1.5s;
+        }
+        
+        .shooting-stars span:nth-child(5) {
+            top: 0;
+            right: 400px;
+            left: initial;
+            animation-delay: 0.8s;
+            animation-duration: 2.5s;
+        }
+        
+        .shooting-stars span:nth-child(6) {
+            top: 0;
+            right: 600px;
+            left: initial;
+            animation-delay: 1s;
+            animation-duration: 3s;
+        }
+        
+        .shooting-stars span:nth-child(7) {
+            top: 300px;
+            right: 0;
+            left: initial;
+            animation-delay: 1.2s;
+            animation-duration: 1.75s;
+        }
+        
+        .shooting-stars span:nth-child(8) {
+            top: 0;
+            right: 700px;
+            left: initial;
+            animation-delay: 1.4s;
+            animation-duration: 1.25s;
+        }
+        
+        .shooting-stars span:nth-child(9) {
+            top: 0;
+            right: 1000px;
+            left: initial;
+            animation-delay: 0.75s;
+            animation-duration: 2.25s;
+        }
+        
+        .shooting-stars span:nth-child(10) {
+            top: 0;
+            right: 450px;
+            left: initial;
+            animation-delay: 2.75s;
+            animation-duration: 2.75s;
         }
         
         body.logged-in .screen {
@@ -477,6 +619,19 @@
 </head>
 <body oncontextmenu="return false">
     
+    <section class="shooting-stars">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+    </section>
+    
     <div id="login" class="screen visible">
         <div class="main-content">
             <div style="text-align: center; max-width: 400px;">
@@ -611,28 +766,6 @@
     </script>
 
     <script type="module">
-        import { 
-            collection, 
-            doc, 
-            getDoc, 
-            setDoc, 
-            updateDoc, 
-            addDoc, 
-            onSnapshot, 
-            query, 
-            orderBy, 
-            limit, 
-            deleteDoc, 
-            arrayUnion, 
-            getDocs, 
-            arrayRemove 
-        } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-        import { 
-            ref, 
-            uploadBytes, 
-            getDownloadURL 
-        } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
-
         console.log('Chat Hub v2 - Global Sync Loaded! 💬');
         
         // Use Firebase instances from the global scope
@@ -717,8 +850,14 @@
                 listeners[otherUser] = onSnapshot(q, (snap) => {
                     if (!snap.empty) {
                         const msg = snap.docs[0].data();
-                        if (msg.username !== currentUser && currentPrivateChatUser !== otherUser) {
+                        if (msg.username !== currentUser) {
                             showNotification(`New message from ${otherUser}! 💬`, 'success');
+                            if (Notification.permission === "granted" && (currentPrivateChatUser !== otherUser || document.hidden)) {
+                                new Notification(`New message from ${otherUser}`, {
+                                    body: msg.text || 'New media message',
+                                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💬</text></svg>'
+                                });
+                            }
                         }
                     }
                 });
@@ -1262,6 +1401,34 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             ensureAdminUsers().catch(console.error);
+
+            // Request notification permission
+            if (Notification.permission === 'default') {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        showNotification('Notifications enabled!', 'success');
+                    } else {
+                        showNotification('Notifications disabled.', 'info');
+                    }
+                });
+            }
+
+            // Create static stars
+            const starsContainer = document.createElement('div');
+            starsContainer.className = 'stars';
+            document.body.insertBefore(starsContainer, document.body.firstChild);
+            for (let i = 0; i < 200; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                const size = Math.random() * 3 + 1;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.animationDelay = `${Math.random() * 2}s`;
+                star.style.opacity = Math.random() * 0.5 + 0.5;
+                starsContainer.appendChild(star);
+            }
 
             const searchInput = document.getElementById('userSearch');
             if (searchInput) {
