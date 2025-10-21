@@ -1,783 +1,1275 @@
-<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Space Mines & Plinko</title>
-  <style>
-    :root {
-      --bg1: #a0eaff;
-      --bg2: #ff9aa2;
-      --accent: #7af0c2;
-      --muted: #8fa3b3;
-      --card-bg: #0b0d18;
-      --glass: rgba(255,255,255,0.02);
-    }
-    * { box-sizing: border-box; margin:0; padding:0; }
-    html, body { height:100%; }
-    body {
-      background: linear-gradient(135deg, var(--bg1), var(--bg2));
-      background-size: 400% 400%;
-      animation: bgShift 20s ease infinite;
-      color: #e6eef8;
-      min-height:100vh;
-      font-family: Inter, system-ui, sans-serif;
-    }
-    @keyframes bgShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-    .topbar {
-      position:fixed;
-      top:18px; left:18px;
-      z-index:10;
-      display:flex;
-      gap:10px;
-    }
-    .switch-btn {
-      background: var(--card-bg);
-      color: var(--accent);
-      border: 1px solid var(--accent);
-      border-radius: 10px;
-      padding: 10px 18px;
-      font-weight: 700;
-      font-size: 16px;
-      cursor: pointer;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-      transition: background 0.2s, color 0.2s;
-    }
-    .switch-btn.active {
-      background: var(--accent);
-      color: #0b0d18;
-    }
-    .container {
-      width:100%;
-      max-width:1000px;
-      margin:80px auto 0 auto;
-      display:grid;
-      grid-template-columns: 420px 1fr;
-      gap:20px;
-    }
-    .card {
-      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)), var(--card-bg);
-      border-radius:12px;
-      padding:18px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.04);
-      border:1px solid rgba(255,255,255,0.03);
-      display:flex;
-      flex-direction:column;
-      gap:14px;
-    }
-    .hidden { display:none !important; }
-    /* Mines game styles (copied from your code) */
-    .balance {
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-    }
-    .balance .amount {
-      font-size:28px;
-      font-weight:700;
-      color: var(--accent);
-    }
-    .balance .label {
-      color: var(--muted);
-      font-size:13px;
-    }
-    input[type=number] {
-      width:140px;
-      padding:10px 12px;
-      border-radius:8px;
-      border:1px solid rgba(255,255,255,0.04);
-      background:transparent;
-      color:inherit;
-      font-weight:600;
-      transition: border-color 0.3s;
-    }
-    input[type=number]:focus {
-      border-color: var(--accent);
-      outline: none;
-    }
-    button {
-      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-      color:inherit;
-      border:1px solid rgba(255,255,255,0.04);
-      padding:10px 12px;
-      border-radius:8px;
-      cursor:pointer;
-      font-weight:700;
-      transition: transform 0.15s, box-shadow 0.15s;
-    }
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 22px rgba(0,0,0,0.7);
-    }
-    .btn-primary {
-      background: linear-gradient(90deg, var(--accent), #a0f9d8);
-      border:none;
-      color:#0b0d18;
-      box-shadow: 0 6px 18px rgba(122,240,194,0.2);
-    }
-    .toggle {
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:6px;
-      border-radius:10px;
-      background: var(--glass);
-      border:1px solid rgba(255,255,255,0.02);
-    }
-    .toggle input {
-      width:16px; height:16px;
-    }
-    .toggle span {
-      color: var(--muted);
-      font-size:13px;
-    }
-    .grid {
-      display:grid;
-      grid-template-columns: repeat(5,1fr);
-      gap:6px;
-      margin-top:12px;
-    }
-    .cell {
-      position: relative;
-      background: var(--glass);
-      border-radius:8px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:18px;
-      cursor:pointer;
-      user-select:none;
-      aspect-ratio:1;
-      overflow:hidden;
-      transition: background 0.3s;
-    }
-    .cell:hover {
-      background: rgba(255,255,255,0.06);
-    }
-    .cell.revealed {
-      cursor: default;
-      background: rgba(255,255,255,0.08);
-    }
-    .cell.mine {
-      background: linear-gradient(135deg, #001a33, #004f66);
-      color: #ff6666;
-    }
-    .cell.safe {
-      background: linear-gradient(135deg, #002244, #33cc88);
-      color: #ccffee;
-    }
-    .cell .inner {
-      transform: scale(0);
-      transition: transform 0.3s ease-out;
-      z-index:5;
-    }
-    .cell.revealed .inner {
-      transform: scale(1);
-    }
-    .history {
-      margin-top:12px;
-      max-height:300px;
-      overflow:auto;
-      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));
-      border-radius:10px;
-      padding:10px;
-    }
-    .history-item {
-      display:flex;
-      justify-content:space-between;
-      padding:6px;
-      border-radius:8px;
-      margin-bottom:6px;
-      transition: background 0.3s;
-    }
-    .history-item.win {
-      background: linear-gradient(90deg, rgba(64,255,192,0.05), rgba(255,255,255,0.01));
-    }
-    .history-item.loss {
-      background: linear-gradient(90deg, rgba(255,72,72,0.04), rgba(255,255,255,0.01));
-    }
-    .small { font-size:12px; color: var(--muted); }
-    /* Plinko styles */
-    .plinko-canvas {
-      width: 100%;
-      height: 500px;
-      background: linear-gradient(180deg, #0b0d18 80%, #1a2a38 100%);
-      border-radius: 12px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.7);
-      display: block;
-      margin: 0 auto;
-      border: 1px solid rgba(255,255,255,0.04);
-    }
-    .plinko-payouts {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 10px;
-      gap: 2px;
-    }
-    .plinko-payout {
-      flex: 1;
-      text-align: center;
-      font-weight: bold;
-      color: var(--accent);
-      background: rgba(255,255,255,0.03);
-      border-radius: 6px;
-      padding: 4px 0;
-      font-size: 15px;
-    }
-    .plinko-controls {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      margin-top: 10px;
-    }
-    .plinko-history {
-      margin-top: 12px;
-      max-height: 120px;
-      overflow: auto;
-      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));
-      border-radius: 10px;
-      padding: 10px;
-      font-size: 13px;
-      color: var(--muted);
-    }
-  </style>
-</head>
-<body>
-  <div class="topbar">
-    <button class="switch-btn active" id="btnMines">Mines</button>
-    <button class="switch-btn" id="btnPlinko">Plinko</button>
-  </div>
-  <div class="container">
-    <!-- Mines Game -->
-    <div class="card left-col" id="minesGame">
-      <div class="balance">
-        <div>
-          <div class="label">Balance</div>
-          <div class="amount" id="balanceDisplay">1,000,000</div>
-        </div>
-        <div>
-          <label class="toggle" title="Infinite money (fun mode)">
-            <input id="infiniteToggle" type="checkbox" />
-            <span class="small">Infinite</span>
-          </label>
-        </div>
-      </div>
-      <div class="small muted" style="margin-top:8px;">
-        Reveal tiles â avoid mines! Cash out before you explode.
-      </div>
-      <div class="grid" id="grid"></div>
-      <div style="margin-top:12px; display:flex; gap:12px; align-items:center;">
-        <button id="cashoutBtn" class="btn-primary" disabled>Cash Out</button>
-        <div id="statusLabel" class="small"></div>
-      </div>
-    </div>
-    <div class="card right-col" id="minesControls">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="flex:1">
-          <div class="label small">Bet</div>
-          <input type="number" id="betInput" min="1" step="1" value="1000" />
-        </div>
-        <div>
-          <label class="toggle">
-            <input type="number" id="mineCount" value="3" min="1" max="10" style="width:60px;" />
-            <span class="small">Mines</span>
-          </label>
-        </div>
-      </div>
-      <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
-        <button id="startBtn" class="btn-primary" style="flex:1;">Start Game</button>
-        <label class="toggle">
-          <input type="checkbox" id="autoCashout" />
-          <span class="small">Auto Cashout</span>
-        </label>
-      </div>
-      <div style="margin-top:12px; flex:1;">
-        <div class="small muted">History</div>
-        <div class="history" id="history"></div>
-      </div>
-    </div>
-    <!-- Plinko Game -->
-    <div class="card left-col hidden" id="plinkoGame">
-      <div class="balance">
-        <div>
-          <div class="label">Balance</div>
-          <div class="amount" id="plinkoBalanceDisplay">1,000,000</div>
-        </div>
-        <div>
-          <label class="toggle" title="Infinite money (fun mode)">
-            <input id="plinkoInfiniteToggle" type="checkbox" />
-            <span class="small">Infinite</span>
-          </label>
-        </div>
-      </div>
-      <div class="small muted" style="margin-top:8px;">
-        Drop the ball! Where will it land?
-      </div>
-      <canvas class="plinko-canvas" id="plinkoCanvas" width="350" height="500"></canvas>
-      <div class="plinko-payouts" id="plinkoPayouts"></div>
-      <div class="plinko-controls">
-        <div>
-          <div class="label small">Bet</div>
-          <input type="number" id="plinkoBetInput" min="1" step="1" value="1000" />
-        </div>
-        <button id="plinkoDropBtn" class="btn-primary">Drop Ball</button>
-      </div>
-      <div class="plinko-history" id="plinkoHistory"></div>
-    </div>
-    <div class="card right-col hidden" id="plinkoControls">
-      <div class="small muted">Plinko Info</div>
-      <div style="margin-top:10px;">
-        <div class="small">Payouts increase as you go outwards. Middle slot pays 0.2x, next 0.5x, then 1x, 2x, and 10x at the edges.</div>
-        <div class="small" style="margin-top:10px;">Try to hit the sides for big wins!</div>
-      </div>
-    </div>
-  </div>
-<script>
-(() => {
-  // --- Shared Economy State ---
-  const STORAGE_KEY = 'mines_plinko_econ_v1';
-  const defaultState = {
-    balance: 1_000_000,
-    infinite: true,
-    history: [],
-    plinkoHistory: []
-  };
-  let state = loadState();
-
-  function loadState(){
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return {...defaultState};
-      const p = JSON.parse(raw);
-      p.balance = typeof p.balance === 'number' ? p.balance : defaultState.balance;
-      p.infinite = !!p.infinite;
-      p.history = Array.isArray(p.history) ? p.history : [];
-      p.plinkoHistory = Array.isArray(p.plinkoHistory) ? p.plinkoHistory : [];
-      return p;
-    } catch(e) {
-      return {...defaultState};
-    }
-  }
-  function saveState(){
-    const to = {
-      balance: state.balance,
-      infinite: state.infinite,
-      history: state.history.slice(-200),
-      plinkoHistory: state.plinkoHistory.slice(-100)
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(to));
-  }
-  function fmt(n){
-    if (n === Infinity) return 'â';
-    return n >= 1000 ? n.toLocaleString() : '' + n;
-  }
-
-  // --- UI Switch ---
-  const btnMines = document.getElementById('btnMines');
-  const btnPlinko = document.getElementById('btnPlinko');
-  const minesGame = document.getElementById('minesGame');
-  const minesControls = document.getElementById('minesControls');
-  const plinkoGame = document.getElementById('plinkoGame');
-  const plinkoControls = document.getElementById('plinkoControls');
-
-  function showGame(game) {
-    if (game === 'mines') {
-      minesGame.classList.remove('hidden');
-      minesControls.classList.remove('hidden');
-      plinkoGame.classList.add('hidden');
-      plinkoControls.classList.add('hidden');
-      btnMines.classList.add('active');
-      btnPlinko.classList.remove('active');
-      renderBalance();
-    } else {
-      minesGame.classList.add('hidden');
-      minesControls.classList.add('hidden');
-      plinkoGame.classList.remove('hidden');
-      plinkoControls.classList.remove('hidden');
-      btnMines.classList.remove('active');
-      btnPlinko.classList.add('active');
-      renderPlinkoBalance();
-    }
-  }
-  btnMines.onclick = () => showGame('mines');
-  btnPlinko.onclick = () => showGame('plinko');
-
-  // --- Mines Game (from your code, slightly adapted for shared balance) ---
-  const balanceDisplay = document.getElementById('balanceDisplay');
-  const infiniteToggle = document.getElementById('infiniteToggle');
-  const betInput = document.getElementById('betInput');
-  const startBtn = document.getElementById('startBtn');
-  const mineCountInput = document.getElementById('mineCount');
-  const autoCashout = document.getElementById('autoCashout');
-  const gridEl = document.getElementById('grid');
-  const cashoutBtn = document.getElementById('cashoutBtn');
-  const statusLabel = document.getElementById('statusLabel');
-  const historyEl = document.getElementById('history');
-
-  function renderBalance(){
-    balanceDisplay.textContent = state.infinite ? 'â' : fmt(state.balance);
-  }
-  function renderHistory(){
-    historyEl.innerHTML = '';
-    const items = state.history.slice().reverse();
-    if (items.length === 0) {
-      historyEl.innerHTML = `<div class="small muted">No history yet.</div>`;
-      return;
-    }
-    for (const it of items) {
-      const el = document.createElement('div');
-      el.className = 'history-item ' + (it.profit >= 0 ? 'win' : 'loss');
-      el.innerHTML = `
-        <div>${it.result}</div>
-        <div>${it.profit >= 0 ? '+' : ''}${fmt(it.profit)}</div>
-      `;
-      historyEl.appendChild(el);
-    }
-  }
-
-  let game = null;
-  function resetGame(){
-    game = null;
-    gridEl.innerHTML = '';
-    cashoutBtn.disabled = true;
-    statusLabel.textContent = '';
-  }
-  function startGame(){
-    resetGame();
-    const bet = Math.floor(Number(betInput.value));
-    if (!Number.isFinite(bet) || bet < 1) {
-      alert('Enter a valid bet');
-      return;
-    }
-    if (!state.infinite && bet > state.balance) {
-      alert('Not enough balance');
-      return;
-    }
-    const mines = Math.floor(Number(mineCountInput.value));
-    if (!Number.isFinite(mines) || mines < 1 || mines >= 25) {
-      alert('Mines must be between 1 and 24');
-      return;
-    }
-    const total = 25;
-    const minePos = new Set();
-    while (minePos.size < mines) {
-      minePos.add(Math.floor(Math.random() * total));
-    }
-    game = { bet, mines, minePos, opened: new Set(), currentPayout: 0 };
-    if (!state.infinite) {
-      state.balance -= bet;
-    }
-    for (let i=0; i<25; i++){
-      const c = document.createElement('div');
-      c.className = 'cell';
-      c.dataset.idx = i;
-      c.addEventListener('click', cellClick);
-      const inner = document.createElement('div');
-      inner.className = 'inner';
-      c.appendChild(inner);
-      gridEl.appendChild(c);
-    }
-    cashoutBtn.disabled = false;
-    statusLabel.textContent = `Opened 0 safe / ${mines} mines`;
-    renderBalance();
-    saveState();
-  }
-  function cellClick(ev){
-    if (!game) return;
-    const idx = +ev.currentTarget.dataset.idx;
-    if (game.opened.has(idx)) return;
-    game.opened.add(idx);
-    const cell = ev.currentTarget;
-    const inner = cell.querySelector('.inner');
-    if (game.minePos.has(idx)) {
-      cell.classList.add('revealed', 'mine');
-      inner.textContent = 'ð£';
-      endGame(false);
-    } else {
-      cell.classList.add('revealed', 'safe');
-      inner.textContent = '';
-      const safeCount = game.opened.size;
-      statusLabel.textContent = `Opened ${safeCount} safe / ${game.mines} mines`;
-      const multiplier = 1 + safeCount * 0.1;
-      game.currentPayout = game.bet * multiplier;
-      if (autoCashout.checked) {
-        cashOut();
-      }
-    }
-  }
-  function endGame(win){
-    for (const idx of game.minePos) {
-      const c = gridEl.querySelector(`.cell[data-idx='${idx}']`);
-      if (c && !c.classList.contains('revealed')) {
-        c.classList.add('revealed','mine');
-        c.querySelector('.inner').textContent = 'ð£';
-      }
-    }
-    cashoutBtn.disabled = true;
-    if (!win) {
-      statusLabel.textContent = `ð¥ Boom! You lost -${fmt(game.bet)}`;
-      state.history.push({ result: 'Loss', profit: -game.bet });
-    }
-    renderBalance();
-    renderHistory();
-    saveState();
-    game = null;
-  }
-  function cashOut(){
-    if (!game) return;
-    const profit = Math.floor(game.currentPayout) - game.bet;
-    if (!state.infinite) {
-      state.balance += Math.floor(game.currentPayout);
-    }
-    statusLabel.textContent = `Cashed out +${fmt(profit)}`;
-    state.history.push({ result: 'Win', profit });
-    saveState();
-    renderBalance();
-    renderHistory();
-    endGame(true);
-  }
-  startBtn.addEventListener('click', startGame);
-  cashoutBtn.addEventListener('click', cashOut);
-  infiniteToggle.addEventListener('change', () => {
-    state.infinite = infiniteToggle.checked;
-    renderBalance();
-    saveState();
-  });
-
-  // --- Plinko Game ---
-  const plinkoBalanceDisplay = document.getElementById('plinkoBalanceDisplay');
-  const plinkoInfiniteToggle = document.getElementById('plinkoInfiniteToggle');
-  const plinkoBetInput = document.getElementById('plinkoBetInput');
-  const plinkoDropBtn = document.getElementById('plinkoDropBtn');
-  const plinkoCanvas = document.getElementById('plinkoCanvas');
-  const plinkoPayouts = document.getElementById('plinkoPayouts');
-  const plinkoHistory = document.getElementById('plinkoHistory');
-
-  // Payouts: [left, ..., center, ..., right]
-  const plinkoPayoutArr = [10, 2, 1, 0.5, 0.2, 0.5, 1, 2, 10];
-  function renderPlinkoPayouts() {
-    plinkoPayouts.innerHTML = '';
-    for (let i = 0; i < plinkoPayoutArr.length; ++i) {
-      const div = document.createElement('div');
-      div.className = 'plinko-payout';
-      div.textContent = plinkoPayoutArr[i] + 'x';
-      plinkoPayouts.appendChild(div);
-    }
-  }
-  function renderPlinkoBalance() {
-    plinkoBalanceDisplay.textContent = state.infinite ? 'â' : fmt(state.balance);
-  }
-  function renderPlinkoHistory() {
-    plinkoHistory.innerHTML = '';
-    if (state.plinkoHistory.length === 0) {
-      plinkoHistory.innerHTML = '<div>No history yet.</div>';
-      return;
-    }
-    for (let i = state.plinkoHistory.length - 1; i >= 0; --i) {
-      const h = state.plinkoHistory[i];
-      const color = h.payout > 1 ? 'style="color:#7af0c2;"' : '';
-      plinkoHistory.innerHTML += `<div ${color}>${h.result} (${h.payout}x) ${h.profit >= 0 ? '+' : ''}${fmt(h.profit)}</div>`;
-    }
-  }
-
-  // Plinko physics
-  const ROWS = 8;
-  const COLS = plinkoPayoutArr.length;
-  const PEG_RADIUS = 7;
-  const BALL_RADIUS = 10;
-  const SLOT_HEIGHT = 40;
-  const PEG_Y_START = 60;
-  const CANVAS_W = plinkoCanvas.width;
-  const CANVAS_H = plinkoCanvas.height;
-  const SLOT_W = CANVAS_W / COLS;
-
-  let plinkoBall = null;
-  let plinkoAnim = null;
-
-  function resetPlinko() {
-    plinkoBall = null;
-    if (plinkoAnim) cancelAnimationFrame(plinkoAnim);
-    drawPlinko();
-  }
-
-  function dropPlinkoBall() {
-    if (plinkoBall) return;
-    const bet = Math.floor(Number(plinkoBetInput.value));
-    if (!Number.isFinite(bet) || bet < 1) {
-      alert('Enter a valid bet');
-      return;
-    }
-    if (!state.infinite && bet > state.balance) {
-      alert('Not enough balance');
-      return;
-    }
-    if (!state.infinite) state.balance -= bet;
-    renderPlinkoBalance();
-    saveState();
-
-    // Ball starts at center
-    plinkoBall = {
-      x: CANVAS_W / 2,
-      y: 30,
-      vx: 0,
-      vy: 2,
-      bet: bet,
-      path: [],
-      finished: false
-    };
-    animatePlinko();
-  }
-
-  function animatePlinko() {
-    if (!plinkoBall) return;
-    plinkoBall.vy += 0.08; // gravity
-    plinkoBall.y += plinkoBall.vy;
-    plinkoBall.x += plinkoBall.vx;
-
-    // Collide with pegs
-    for (let row = 0; row < ROWS; ++row) {
-      const y = PEG_Y_START + row * SLOT_HEIGHT;
-      if (Math.abs(plinkoBall.y - y) < PEG_RADIUS + BALL_RADIUS && !plinkoBall.path[row]) {
-        // Pegs are staggered
-        let pegCount = COLS - (row % 2);
-        for (let col = 0; col < pegCount; ++col) {
-          let px = SLOT_W * (col + 0.5) + (row % 2 ? SLOT_W / 2 : 0);
-          let py = y;
-          let dx = plinkoBall.x - px;
-          let dy = plinkoBall.y - py;
-          let dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < PEG_RADIUS + BALL_RADIUS) {
-            // Bounce left or right randomly, but bias to simulate real plinko
-            let dir = Math.random() < 0.5 ? -1 : 1;
-            if (plinkoBall.x < px) dir = -1;
-            if (plinkoBall.x > px) dir = 1;
-            plinkoBall.vx = dir * (Math.random() * 2 + 1.5);
-            plinkoBall.vy *= 0.7;
-            plinkoBall.path[row] = true;
-            break;
-          }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>">
+    <title>Chat Hub 💬</title>
+    <!-- Firebase SDK v12.4.0 -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js';
+        import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, onSnapshot, query, orderBy, limit, deleteDoc, arrayUnion, getDocs, arrayRemove } from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js';
+        import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/12.4.0/firebase-storage.js';
+        window.firebaseApp = { initializeApp, getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, onSnapshot, query, orderBy, limit, deleteDoc, arrayUnion, getDocs, arrayRemove, getStorage, ref, uploadBytes, getDownloadURL };
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
-      }
-    }
+        
+        body {
+            font-family: 'Orbitron', monospace;
+            background: linear-gradient(135deg, #000000 0%, #001f3f 50%, #7b2cbf 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            color: #ffffff;
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        body.logged-in .screen {
+            left: 0;
+            width: 100%;
+        }
+        
+        body:not(.logged-in) .screen {
+            left: 0;
+            width: 100%;
+        }
+        
+        .screen {
+            position: absolute;
+            top: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+            z-index: 1;
+        }
+        
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(50px);
+        }
+        
+        .visible {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+        
+        .header {
+            width: 100%;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(123, 44, 191, 0.5);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+            position: relative;
+            animation: slideDown 0.5s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from { transform: translateY(-100%); }
+            to { transform: translateY(0); }
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .header-left h1 {
+            font-size: 1.8em;
+            text-shadow: 0 0 10px #7b2cbf;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { text-shadow: 0 0 10px #7b2cbf; }
+            to { text-shadow: 0 0 20px #7b2cbf, 0 0 30px #7b2cbf; }
+        }
+        
+        .header-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
+        }
+        
+        .header-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            font-family: 'Roboto', sans-serif;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 20px;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(123, 44, 191, 0.3));
+            color: #ffffff;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.4s;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(123, 44, 191, 0.5);
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(123, 44, 191, 0.4));
+        }
+        
+        .logout {
+            background: linear-gradient(145deg, rgba(255, 0, 0, 0.3), rgba(123, 44, 191, 0.2)) !important;
+        }
+        
+        .logout:hover {
+            background: linear-gradient(145deg, rgba(255, 0, 0, 0.5), rgba(123, 44, 191, 0.3)) !important;
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            animation: fadeIn 0.8s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .users-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            width: 100%;
+            max-width: 900px;
+            padding: 20px;
+        }
+        
+        .user-card {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(145deg, rgba(0, 0, 0, 0.6), rgba(123, 44, 191, 0.2));
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            transition: all 0.4s ease;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            animation: cardPop 0.5s ease-out;
+        }
+        
+        @keyframes cardPop {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        .user-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s;
+        }
+        
+        .user-card:hover::before {
+            left: 100%;
+        }
+        
+        .user-card:hover {
+            transform: translateY(-10px) scale(1.05);
+            border-color: #7b2cbf;
+            box-shadow: 0 12px 40px rgba(123, 44, 191, 0.6);
+        }
+        
+        .user-icon {
+            font-size: 4em;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 0 10px rgba(123, 44, 191, 0.5));
+            transition: transform 0.3s ease;
+        }
+        
+        .user-card:hover .user-icon {
+            transform: scale(1.2) rotate(5deg);
+        }
+        
+        .user-title {
+            font-size: 1.4em;
+            font-weight: 700;
+            text-align: center;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .chat-area {
+            width: 100%;
+            max-width: 800px;
+            padding: 40px;
+            background: linear-gradient(145deg, rgba(0, 0, 0, 0.7), rgba(123, 44, 191, 0.1));
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            animation: slideIn 0.6s ease-out;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .back-btn {
+            align-self: flex-start;
+            background: linear-gradient(145deg, rgba(123, 44, 191, 0.3), rgba(0, 0, 0, 0.5));
+        }
+        
+        #private-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        
+        .message {
+            padding: 10px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            word-wrap: break-word;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            animation: messagePop 0.3s ease-out;
+        }
+        
+        @keyframes messagePop {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        .message small {
+            opacity: 0.7;
+            font-size: 0.8em;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .reactions {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        
+        .reaction {
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        
+        .reaction:hover {
+            transform: scale(1.3);
+        }
+        
+        #private-chat-input-container {
+            padding: 15px;
+            border-top: 1px solid rgba(123, 44, 191, 0.3);
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            align-items: center;
+        }
+        
+        #private-chat-input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(123, 44, 191, 0.3);
+            color: #fff;
+            font-family: 'Roboto', sans-serif;
+        }
+        
+        #private-chat-input:focus {
+            outline: none;
+            box-shadow: 0 0 10px #7b2cbf;
+        }
+        
+        .media-btn {
+            padding: 10px;
+            font-size: 1.2em;
+        }
+        
+        .message img {
+            max-width: 200px;
+            border-radius: 10px;
+            margin-top: 10px;
+            transition: transform 0.3s ease;
+        }
+        
+        .message img:hover {
+            transform: scale(1.1);
+        }
+        
+        .message audio {
+            margin-top: 10px;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            padding: 15px 20px;
+            background: rgba(0, 31, 63, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(123, 44, 191, 0.5);
+            animation: slideInRight 0.5s ease-out;
+            z-index: 1000;
+            border-left: 4px solid #7b2cbf;
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
 
-    // Collide with walls
-    if (plinkoBall.x < BALL_RADIUS) {
-      plinkoBall.x = BALL_RADIUS;
-      plinkoBall.vx = Math.abs(plinkoBall.vx) * 0.7;
-    }
-    if (plinkoBall.x > CANVAS_W - BALL_RADIUS) {
-      plinkoBall.x = CANVAS_W - BALL_RADIUS;
-      plinkoBall.vx = -Math.abs(plinkoBall.vx) * 0.7;
-    }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(123, 44, 191, 0.3);
+        }
 
-    // Land in slot
-    if (plinkoBall.y > CANVAS_H - 30) {
-      // Find slot
-      let slot = Math.floor(plinkoBall.x / SLOT_W);
-      slot = Math.max(0, Math.min(COLS - 1, slot));
-      let payout = plinkoPayoutArr[slot];
-      let profit = Math.floor(plinkoBall.bet * payout) - plinkoBall.bet;
-      if (!state.infinite) state.balance += Math.floor(plinkoBall.bet * payout);
-      renderPlinkoBalance();
-      saveState();
-      let result = payout > 1 ? 'Win' : (payout === 1 ? 'Push' : 'Loss');
-      state.plinkoHistory.push({ result, payout, profit });
-      renderPlinkoHistory();
-      plinkoBall.finished = true;
-      setTimeout(resetPlinko, 1200);
-    }
+        th {
+            background: rgba(123, 44, 191, 0.2);
+            font-weight: bold;
+        }
 
-    drawPlinko();
-    if (!plinkoBall.finished) {
-      plinkoAnim = requestAnimationFrame(animatePlinko);
-    }
-  }
+        .auth-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
 
-  function drawPlinko() {
-    const ctx = plinkoCanvas.getContext('2d');
-    ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+        .auth-toggle .btn {
+            padding: 8px 12px;
+            font-size: 0.9em;
+        }
 
-    // Draw slots
-    for (let i = 0; i < COLS; ++i) {
-      ctx.save();
-      ctx.fillStyle = 'rgba(122,240,194,0.08)';
-      ctx.fillRect(i * SLOT_W, CANVAS_H - 30, SLOT_W, 30);
-      ctx.restore();
-    }
-    // Draw payout labels
-    ctx.save();
-    ctx.font = 'bold 15px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#7af0c2';
-    for (let i = 0; i < COLS; ++i) {
-      ctx.fillText(plinkoPayoutArr[i] + 'x', i * SLOT_W + SLOT_W / 2, CANVAS_H - 10);
-    }
-    ctx.restore();
+        .auth-form input {
+            width: 100%;
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(123, 44, 191, 0.3);
+            color: #fff;
+            font-size: 1em;
+        }
 
-    // Draw pegs
-    for (let row = 0; row < ROWS; ++row) {
-      let pegCount = COLS - (row % 2);
-      let y = PEG_Y_START + row * SLOT_HEIGHT;
-      for (let col = 0; col < pegCount; ++col) {
-        let x = SLOT_W * (col + 0.5) + (row % 2 ? SLOT_W / 2 : 0);
-        ctx.beginPath();
-        ctx.arc(x, y, PEG_RADIUS, 0, Math.PI * 2);
-        ctx.fillStyle = '#fff3';
-        ctx.fill();
-        ctx.strokeStyle = '#7af0c2';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
-    }
+        .auth-form input:focus {
+            outline: none;
+            box-shadow: 0 0 15px #7b2cbf;
+            border-color: #7b2cbf;
+        }
+    </style>
+</head>
+<body oncontextmenu="return false">
+    
+    <div id="login" class="screen visible">
+        <div class="main-content">
+            <div style="text-align: center; max-width: 400px;">
+                <h1 style="font-size: 3em; margin-bottom: 30px;">Chat Hub 💬</h1>
+                <div class="auth-toggle">
+                    <button class="btn" onclick="setMode('login')">Login</button>
+                    <button class="btn" onclick="setMode('signup')">Sign Up</button>
+                </div>
+                <div id="login-form" class="auth-form">
+                    <input type="text" id="username" placeholder="Enter Username 👤" maxlength="20">
+                    <input type="password" id="login-password" placeholder="Enter Password 🔒">
+                    <button class="btn" onclick="login()" style="width: 100%; padding: 15px; font-size: 1.2em;">Login & Chat 💬</button>
+                </div>
+                <div id="signup-form" class="auth-form" style="display: none;">
+                    <input type="text" id="signup-username" placeholder="Choose Username 👤" maxlength="20">
+                    <input type="password" id="signup-password" placeholder="Choose Password 🔒">
+                    <input type="password" id="confirm-password" placeholder="Confirm Password 🔐">
+                    <button class="btn" onclick="signUp()" style="width: 100%; padding: 15px; font-size: 1.2em;">Sign Up & Chat 💬</button>
+                </div>
+                <p style="margin-top: 20px; opacity: 0.7; font-family: 'Roboto', sans-serif;">Powered by Chats ✨ | Now with Global Sync!</p>
+            </div>
+        </div>
+    </div>
+    
+    <div id="dashboard" class="screen hidden">
+        <div class="header">
+            <div class="header-left">
+                <h1>Welcome, <span id="user"></span> 💬</h1>
+            </div>
+            <div class="header-right">
+                <div class="header-buttons">
+                    <button class="btn logout" onclick="logout()">🚪 Logout</button>
+                </div>
+            </div>
+        </div>
+        <div class="main-content">
+            <div style="max-width: 800px; width: 100%;">
+                <h2 style="text-align: center; margin-bottom: 20px;">Users List</h2>
+                <div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <input type="text" id="userSearch" placeholder="Search users..." style="width: 300px; padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.1); border: 1px solid #7b2cbf; color: white;">
+                    <button class="btn" onclick="loadUsers('')">Refresh 🔄</button>
+                </div>
+                <div id="usersTable" style="overflow-y: auto; max-height: 400px; background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px;"></div>
+            </div>
+        </div>
+    </div>
 
-    // Draw ball
-    if (plinkoBall) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(plinkoBall.x, plinkoBall.y, BALL_RADIUS, 0, Math.PI * 2);
-      ctx.fillStyle = '#7af0c2';
-      ctx.shadowColor = '#7af0c2';
-      ctx.shadowBlur = 12;
-      ctx.fill();
-      ctx.restore();
-    }
-  }
+    <div id="admin" class="screen hidden">
+        <div class="header">
+            <div class="header-left">
+                <button class="btn back-btn" onclick="showScreen('dashboard')">← Back</button>
+                <h1>Admin Dashboard 🔧</h1>
+            </div>
+            <div class="header-right">
+                <div class="balance">Admin Mode Active 👑</div>
+                <div class="header-buttons">
+                    <button class="btn logout" onclick="logout()">🚪 Logout</button>
+                </div>
+            </div>
+        </div>
+        <div class="main-content">
+            <div style="max-width: 800px; width: 100%;">
+                <h2 style="text-align: center; margin-bottom: 20px;">User Management</h2>
+                <div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <input type="text" id="adminUserSearch" placeholder="Search users..." style="width: 300px; padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.1); border: 1px solid #7b2cbf; color: white;">
+                    <button class="btn" onclick="loadAdminUsers('')">Refresh 🔄</button>
+                </div>
+                <div id="adminUsersTable" style="overflow-y: auto; max-height: 400px; background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px;"></div>
+                <div style="margin-top: 20px; padding: 20px; background: rgba(0,0,0,0.5); border-radius: 15px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px;">
+                    <h3 style="margin: 0; flex-basis: 100%; text-align: center;">Manage User</h3>
+                    <input type="text" id="selectedUser" placeholder="Enter Username (e.g. NewUser)" style="width: 200px; padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.1); border: 1px solid #7b2cbf; color: white;">
+                    <button class="btn" onclick="doDelete()" style="background: linear-gradient(145deg, rgba(255,0,0,0.3), rgba(200,0,0,0.2));">Delete 🗑️</button>
+                    <button class="btn" onclick="doBan()" style="background: linear-gradient(145deg, rgba(255,0,0,0.3), rgba(200,0,0,0.2));">Ban 🚫</button>
+                    <button class="btn" onclick="doUnban()" style="background: linear-gradient(145deg, rgba(0,255,0,0.3), rgba(0,200,0,0.2));">Unban ✅</button>
+                </div>
+                <h2 style="text-align: center; margin: 20px 0;">Private Messages</h2>
+                <div id="private-chats-list" style="overflow-y: auto; max-height: 400px; background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px;"></div>
+                <div id="private-chat-view" style="margin-top: 20px; display: none; overflow-y: auto; max-height: 400px; background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="private-chat-screen" class="screen hidden">
+        <div class="header">
+            <div class="header-left">
+                <button class="btn back-btn" onclick="closePrivateChat()">← Back</button>
+                <h1>Chat with <span id="chat-with"></span> 💬</h1>
+            </div>
+            <div class="header-right">
+                <div class="header-buttons">
+                    <button class="btn logout" onclick="logout()">🚪 Logout</button>
+                </div>
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="chat-area">
+                <div id="private-messages"></div>
+                <div id="private-chat-input-container">
+                    <input type="text" id="private-chat-input" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendPrivateMessage()">
+                    <input type="file" id="image-upload" accept="image/*" style="display: none;" onchange="sendImageMessage()">
+                    <button class="btn media-btn" onclick="document.getElementById('image-upload').click()">📷</button>
+                    <button class="btn media-btn" onclick="startVoiceRecording()">🎤</button>
+                    <button class="btn" onclick="sendPrivateMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="notification"></div>
 
-  plinkoDropBtn.onclick = dropPlinkoBall;
-  plinkoInfiniteToggle.onchange = () => {
-    state.infinite = plinkoInfiniteToggle.checked;
-    renderPlinkoBalance();
-    saveState();
-  };
+    <script>
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.keyCode === 123) {
+                e.preventDefault();
+            }
+            if (e.ctrlKey && e.shiftKey && e.keyCode === 'I'.charCodeAt(0)) {
+                e.preventDefault();
+            }
+            if (e.ctrlKey && e.shiftKey && e.keyCode === 'C'.charCodeAt(0)) {
+                e.preventDefault();
+            }
+            if (e.ctrlKey && e.shiftKey && e.keyCode === 'J'.charCodeAt(0)) {
+                e.preventDefault();
+            }
+            if (e.ctrlKey && e.keyCode === 'U'.charCodeAt(0)) {
+                e.preventDefault();
+            }
+        });
+    </script>
 
-  // --- Sync infinite toggles and balance ---
-  function syncTogglesAndBalance() {
-    infiniteToggle.checked = state.infinite;
-    plinkoInfiniteToggle.checked = state.infinite;
-    renderBalance();
-    renderPlinkoBalance();
-  }
+    <script type="module">
+        console.log('Chat Hub v2 - Global Sync Loaded! 💬');
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyA3Q_Dsp-DXs1DPMGpP5m6ov6SXlNhjLmE",
+            authDomain: "idk123-e1286.firebaseapp.com",
+            projectId: "idk123-e1286",
+            storageBucket: "idk123-e1286.firebasestorage.app",
+            messagingSenderId: "661013440701",
+            appId: "1:661013440701:web:89f99390d5b9b8475c6fd4",
+            measurementId: "G-BBEXPKLP0H"
+        };
+        
+        const { initializeApp, getFirestore, collection, doc, getDoc, setDoc, updateDoc, addDoc, onSnapshot, query, orderBy, limit, deleteDoc, arrayUnion, getDocs, arrayRemove, getStorage, ref, uploadBytes, getDownloadURL } = window.firebaseApp;
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+        
+        let currentUser = '';
+        let currentScreen = 'login';
+        let isAdmin = false;
+        let userDoc = null;
+        let usersUnsub = null;
+        let adminUsersUnsub = null;
+        let userUnsub = null;
+        let privateMessagesUnsub = null;
+        let privateChatsUnsub = null;
+        let activeChats = [];
+        let currentPrivateChatUser = '';
+        let listeners = {};
+        let users = [];
+        let adminUsers = [];
+        let mediaRecorder = null;
+        
+        const ADMIN_USERS = [
+            { username: 'burst', password: 'burst123' },
+            { username: '2metech77', password: '2metech77special' }
+        ];
+        
+        const badWords = ['fuck', 'shit', 'bitch', 'asshole', 'bastard', 'damn', 'cock', 'cunt', 'ass', 'arse', 'bollocks', 'bugger', 'bloody', 'wank', 'piss', 'twat', 'quim', 'nigger', 'fag', 'retard', 'crap', 'pussy', 'dick', 'prick', 'wanker', 'bellend', 'knob', 'tosser'];
+        
+        const emojis = ['👍', '❤️', '😂', '😢', '😡'];
 
-  // --- Initial Render ---
-  renderBalance();
-  renderHistory();
-  renderPlinkoPayouts();
-  renderPlinkoBalance();
-  renderPlinkoHistory();
-  syncTogglesAndBalance();
-  drawPlinko();
+        function getChatId(user1, user2) {
+            return [user1, user2].sort().join('_');
+        }
 
-  // --- Keep toggles in sync ---
-  infiniteToggle.addEventListener('change', syncTogglesAndBalance);
-  plinkoInfiniteToggle.addEventListener('change', syncTogglesAndBalance);
+        function censorText(text) {
+            let censored = text;
+            badWords.forEach(word => {
+                const regex = new RegExp(word, 'gi');
+                censored = censored.replace(regex, '*'.repeat(word.length));
+            });
+            return censored;
+        }
 
-  // --- Show Mines by default ---
-  showGame('mines');
-})();
-</script>
+        function containsBadWord(str) {
+            const lowerStr = str.toLowerCase();
+            return badWords.some(word => lowerStr.includes(word));
+        }
+
+        async function loadUserData() {
+            try {
+                if (!currentUser) return;
+                const userRef = doc(db, 'users', currentUser);
+                userDoc = userRef;
+                if (userUnsub) userUnsub();
+                userUnsub = onSnapshot(userRef, (snap) => {
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        if (data.banned) {
+                            showNotification('You are banned! ⚠️', 'error');
+                            logout();
+                            return;
+                        }
+                        activeChats = data.activeChats || [];
+                        listenToActiveChats();
+                    } else {
+                        showNotification('User data not found! ⚠️', 'error');
+                    }
+                });
+                const adminUser = ADMIN_USERS.find(admin => admin.username === currentUser);
+                isAdmin = !!adminUser;
+            } catch (error) {
+                console.error('Load user data error:', error);
+                showNotification('Failed to load user data! ⚠️', 'error');
+            }
+        }
+
+        function listenToActiveChats() {
+            Object.keys(listeners).forEach(key => listeners[key]());
+            listeners = {};
+            activeChats.forEach(otherUser => {
+                const chatId = getChatId(currentUser, otherUser);
+                const q = query(collection(db, `privateMessages/${chatId}/messages`), orderBy('time', 'desc'), limit(1));
+                listeners[otherUser] = onSnapshot(q, (snap) => {
+                    if (!snap.empty) {
+                        const msg = snap.docs[0].data();
+                        if (msg.username !== currentUser && currentPrivateChatUser !== otherUser) {
+                            showNotification(`New message from ${otherUser}! 💬`, 'success');
+                        }
+                    }
+                });
+            });
+        }
+
+        function loadUsers(filter = '') {
+            if (usersUnsub) usersUnsub();
+            users = [];
+            const usersRef = collection(db, 'users');
+            const q = query(usersRef, limit(100));
+            usersUnsub = onSnapshot(q, (snap) => {
+                users = [];
+                snap.docs.forEach((d) => {
+                    const data = d.data();
+                    const username = d.id;
+                    if (username !== currentUser && (filter === '' || username.toLowerCase().includes(filter.toLowerCase()))) {
+                        users.push({ username });
+                    }
+                });
+                renderUsersTable();
+            });
+        }
+
+        function renderUsersTable() {
+            const tableDiv = document.getElementById('usersTable');
+            if (users.length === 0) {
+                tableDiv.innerHTML = '<p style="text-align: center; color: #ccc; padding: 20px;">No users found.</p>';
+                return;
+            }
+            let html = '<table>';
+            html += '<tr><th>Username</th><th>Action</th></tr>';
+            users.forEach(user => {
+                html += `<tr><td>${user.username}</td><td><button class="btn" onclick="openPrivateChat('${user.username}')">Message 💬</button></td></tr>`;
+            });
+            html += '</table>';
+            tableDiv.innerHTML = html;
+        }
+
+        function loadAdminUsers(filter = '') {
+            if (adminUsersUnsub) adminUsersUnsub();
+            adminUsers = [];
+            const usersRef = collection(db, 'users');
+            const q = query(usersRef, limit(100));
+            adminUsersUnsub = onSnapshot(q, (snap) => {
+                adminUsers = [];
+                snap.docs.forEach((d) => {
+                    const data = d.data();
+                    const username = d.id;
+                    if (filter === '' || username.toLowerCase().includes(filter.toLowerCase())) {
+                        adminUsers.push({ username, banned: data.banned || false });
+                    }
+                });
+                renderAdminUsersTable();
+            });
+        }
+
+        function renderAdminUsersTable() {
+            const tableDiv = document.getElementById('adminUsersTable');
+            if (adminUsers.length === 0) {
+                tableDiv.innerHTML = '<p style="text-align: center; color: #ccc; padding: 20px;">No users found.</p>';
+                return;
+            }
+            let html = '<table>';
+            html += '<tr><th>Username</th><th>Banned</th></tr>';
+            adminUsers.forEach(user => {
+                html += `<tr><td>${user.username}</td><td>${user.banned ? 'Yes' : 'No'}</td></tr>`;
+            });
+            html += '</table>';
+            tableDiv.innerHTML = html;
+        }
+
+        function loadPrivateChats() {
+            if (privateChatsUnsub) privateChatsUnsub();
+            const chatsList = document.getElementById('private-chats-list');
+            chatsList.innerHTML = '';
+            privateChatsUnsub = onSnapshot(collection(db, 'privateMessages'), (snap) => {
+                chatsList.innerHTML = '';
+                snap.docs.forEach((d) => {
+                    const chatId = d.id;
+                    const [user1, user2] = chatId.split('_');
+                    const item = document.createElement('div');
+                    item.className = 'leaderboard-item';
+                    item.innerHTML = `<span>Chat between ${user1} and ${user2}</span><button class="btn" onclick="viewPrivateChat('${chatId}')">View 👀</button>`;
+                    chatsList.appendChild(item);
+                });
+            });
+        }
+
+        function viewPrivateChat(chatId) {
+            if (privateMessagesUnsub) privateMessagesUnsub();
+            const viewDiv = document.getElementById('private-chat-view');
+            viewDiv.style.display = 'block';
+            viewDiv.innerHTML = '';
+            const q = query(collection(db, `privateMessages/${chatId}/messages`), orderBy('time', 'asc'));
+            privateMessagesUnsub = onSnapshot(q, (snapshot) => {
+                viewDiv.innerHTML = '';
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const div = document.createElement('div');
+                    div.className = 'message';
+                    let content = `<small>${new Date(data.time.toDate()).toLocaleTimeString()} - ${data.username}</small><br>`;
+                    if (data.text) content += data.text;
+                    if (data.imageUrl) content += `<br><img src="${data.imageUrl}" alt="Image">`;
+                    if (data.audioUrl) content += `<br><audio controls src="${data.audioUrl}"></audio>`;
+                    div.innerHTML = content;
+                    viewDiv.appendChild(div);
+                });
+                viewDiv.scrollTop = viewDiv.scrollHeight;
+            });
+        }
+
+        async function openPrivateChat(otherUser) {
+            currentPrivateChatUser = otherUser;
+            document.getElementById('chat-with').textContent = otherUser;
+            showScreen('private-chat');
+            const chatId = getChatId(currentUser, otherUser);
+            if (!activeChats.includes(otherUser)) {
+                await updateDoc(userDoc, { activeChats: arrayUnion(otherUser) });
+                const otherRef = doc(db, 'users', otherUser);
+                await updateDoc(otherRef, { activeChats: arrayUnion(currentUser) });
+                activeChats.push(otherUser);
+                listenToActiveChats();
+            }
+            loadPrivateMessages(chatId);
+        }
+
+        function loadPrivateMessages(chatId) {
+            if (privateMessagesUnsub) privateMessagesUnsub();
+            const messagesDiv = document.getElementById('private-messages');
+            messagesDiv.innerHTML = '';
+            const q = query(collection(db, `privateMessages/${chatId}/messages`), orderBy('time', 'asc'), limit(50));
+            privateMessagesUnsub = onSnapshot(q, (snapshot) => {
+                messagesDiv.innerHTML = '';
+                snapshot.forEach((d) => {
+                    const data = d.data();
+                    const div = document.createElement('div');
+                    div.className = 'message';
+                    let content = `<small>${new Date(data.time.toDate()).toLocaleTimeString()} - ${data.username}</small><br>`;
+                    if (data.text) content += data.text;
+                    if (data.imageUrl) content += `<br><img src="${data.imageUrl}" alt="Image">`;
+                    if (data.audioUrl) content += `<br><audio controls src="${data.audioUrl}"></audio>`;
+                    div.innerHTML = content;
+                    const reactionsDiv = document.createElement('div');
+                    reactionsDiv.className = 'reactions';
+                    emojis.forEach(emoji => {
+                        const span = document.createElement('span');
+                        span.className = 'reaction';
+                        span.textContent = emoji;
+                        span.onclick = () => reactToMessage(d.id, emoji, chatId);
+                        reactionsDiv.appendChild(span);
+                    });
+                    const existingReactions = document.createElement('div');
+                    if (data.reactions) {
+                        data.reactions.forEach(r => {
+                            const rSpan = document.createElement('span');
+                            rSpan.textContent = `${r.emoji} ${r.count}`;
+                            existingReactions.appendChild(rSpan);
+                        });
+                    }
+                    div.appendChild(reactionsDiv);
+                    div.appendChild(existingReactions);
+                    messagesDiv.appendChild(div);
+                });
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            });
+        }
+
+        async function reactToMessage(messageId, emoji, chatId) {
+            const msgRef = doc(db, `privateMessages/${chatId}/messages`, messageId);
+            const msgSnap = await getDoc(msgRef);
+            if (msgSnap.exists()) {
+                let reactions = msgSnap.data().reactions || [];
+                const existing = reactions.find(r => r.emoji === emoji);
+                if (existing) {
+                    existing.count++;
+                } else {
+                    reactions.push({emoji, count: 1});
+                }
+                await updateDoc(msgRef, { reactions });
+            }
+        }
+
+        async function sendPrivateMessage() {
+            const input = document.getElementById('private-chat-input');
+            let text = input.value.trim();
+            if (!text || !currentUser || !currentPrivateChatUser) return;
+            text = censorText(text);
+            const chatId = getChatId(currentUser, currentPrivateChatUser);
+            const messagesRef = collection(db, `privateMessages/${chatId}/messages`);
+            await addDoc(messagesRef, {
+                text,
+                username: currentUser,
+                time: new Date(),
+                reactions: []
+            });
+            input.value = '';
+        }
+
+        async function sendImageMessage() {
+            const input = document.getElementById('image-upload');
+            const file = input.files[0];
+            if (!file || !currentUser || !currentPrivateChatUser) return;
+            const chatId = getChatId(currentUser, currentPrivateChatUser);
+            const storageRef = ref(storage, `images/${chatId}/${Date.now()}_${file.name}`);
+            try {
+                const snapshot = await uploadBytes(storageRef, file);
+                const imageUrl = await getDownloadURL(snapshot.ref);
+                const messagesRef = collection(db, `privateMessages/${chatId}/messages`);
+                await addDoc(messagesRef, {
+                    imageUrl,
+                    username: currentUser,
+                    time: new Date(),
+                    reactions: []
+                });
+                input.value = '';
+            } catch (error) {
+                console.error('Image upload error:', error);
+                showNotification('Failed to upload image! ⚠️', 'error');
+            }
+        }
+
+        async function startVoiceRecording() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showNotification('Voice recording not supported! ⚠️', 'error');
+                return;
+            }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                const chunks = [];
+                mediaRecorder.ondataavailable = e => chunks.push(e.data);
+                mediaRecorder.onstop = async () => {
+                    const blob = new Blob(chunks, { type: 'audio/webm' });
+                    const chatId = getChatId(currentUser, currentPrivateChatUser);
+                    const storageRef = ref(storage, `audio/${chatId}/${Date.now()}.webm`);
+                    try {
+                        const snapshot = await uploadBytes(storageRef, blob);
+                        const audioUrl = await getDownloadURL(snapshot.ref);
+                        const messagesRef = collection(db, `privateMessages/${chatId}/messages`);
+                        await addDoc(messagesRef, {
+                            audioUrl,
+                            username: currentUser,
+                            time: new Date(),
+                            reactions: []
+                        });
+                    } catch (error) {
+                        console.error('Audio upload error:', error);
+                        showNotification('Failed to upload audio! ⚠️', 'error');
+                    }
+                };
+                mediaRecorder.start();
+                showNotification('Recording started! 🎤 Click again to stop.', 'success');
+                document.querySelector('#private-chat-input-container .media-btn[onclick="startVoiceRecording()"]').onclick = stopVoiceRecording;
+            } catch (error) {
+                console.error('Voice recording error:', error);
+                showNotification('Failed to start recording! ⚠️', 'error');
+            }
+        }
+
+        function stopVoiceRecording() {
+            if (mediaRecorder) {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                showNotification('Recording stopped! 🎤', 'success');
+                document.querySelector('#private-chat-input-container .media-btn[onclick="stopVoiceRecording()"]').onclick = startVoiceRecording;
+            }
+        }
+
+        function closePrivateChat() {
+            if (privateMessagesUnsub) privateMessagesUnsub();
+            currentPrivateChatUser = '';
+            showScreen('dashboard');
+        }
+
+        async function doDelete() {
+            const user = document.getElementById('selectedUser').value.trim();
+            if (!user) {
+                showNotification('Invalid input! ⚠️', 'error');
+                return;
+            }
+            if (user === currentUser) {
+                showNotification('Cannot delete your own account! ⚠️', 'error');
+                return;
+            }
+            const userRef = doc(db, 'users', user);
+            const userSnap = await getDoc(userRef);
+            if (!userSnap.exists()) {
+                showNotification('User not found! ⚠️', 'error');
+                return;
+            }
+            await deleteDoc(userRef);
+            showNotification(`Deleted user ${user}! 🗑️`, 'success');
+            document.getElementById('selectedUser').value = '';
+            loadAdminUsers(document.getElementById('adminUserSearch').value);
+        }
+
+        async function doBan() {
+            const user = document.getElementById('selectedUser').value.trim();
+            if (!user) {
+                showNotification('Invalid input! ⚠️', 'error');
+                return;
+            }
+            if (user === currentUser) {
+                showNotification('Cannot ban your own account! ⚠️', 'error');
+                return;
+            }
+            const userRef = doc(db, 'users', user);
+            const userSnap = await getDoc(userRef);
+            if (!userSnap.exists()) {
+                showNotification('User not found! ⚠️', 'error');
+                return;
+            }
+            await updateDoc(userRef, { banned: true });
+            showNotification(`Banned user ${user}! 🚫`, 'success');
+            document.getElementById('selectedUser').value = '';
+            loadAdminUsers(document.getElementById('adminUserSearch').value);
+        }
+
+        async function doUnban() {
+            const user = document.getElementById('selectedUser').value.trim();
+            if (!user) {
+                showNotification('Invalid input! ⚠️', 'error');
+                return;
+            }
+            const userRef = doc(db, 'users', user);
+            const userSnap = await getDoc(userRef);
+            if (!userSnap.exists()) {
+                showNotification('User not found! ⚠️', 'error');
+                return;
+            }
+            await updateDoc(userRef, { banned: false });
+            showNotification(`Unbanned user ${user}! ✅`, 'success');
+            document.getElementById('selectedUser').value = '';
+            loadAdminUsers(document.getElementById('adminUserSearch').value);
+        }
+
+        function showScreen(screen) {
+            document.querySelectorAll('.screen').forEach(s => {
+                s.classList.remove('visible');
+                s.classList.add('hidden');
+            });
+            const target = document.getElementById(`${screen}-screen`) || document.getElementById(screen);
+            if (target) {
+                target.classList.remove('hidden');
+                target.classList.add('visible');
+                currentScreen = screen;
+                if (screen !== 'login') {
+                    if (screen === 'dashboard') {
+                        loadUsers('');
+                    }
+                }
+                if (screen === 'admin') {
+                    loadAdminUsers('');
+                    loadPrivateChats();
+                }
+            }
+        }
+
+        function setMode(mode) {
+            if (mode === 'signup') {
+                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('signup-form').style.display = 'block';
+            } else {
+                document.getElementById('signup-form').style.display = 'none';
+                document.getElementById('login-form').style.display = 'block';
+            }
+        }
+
+        async function signUp() {
+            try {
+                const username = document.getElementById('signup-username').value.trim();
+                const password = document.getElementById('signup-password').value;
+                const confirm = document.getElementById('confirm-password').value;
+                if (!username || !password || !confirm || password !== confirm) {
+                    showNotification('Please fill all fields and ensure passwords match! ⚠️', 'error');
+                    return;
+                }
+                if (containsBadWord(username)) {
+                    showNotification('Username contains inappropriate words! ⚠️', 'error');
+                    return;
+                }
+                const adminUser = ADMIN_USERS.find(admin => admin.username === username);
+                if (adminUser) {
+                    showNotification('Admin username cannot be registered! Use login. ⚠️', 'error');
+                    return;
+                }
+                const userRef = doc(db, 'users', username);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists()) {
+                    showNotification('User already exists! Please login instead. ⚠️', 'error');
+                    return;
+                }
+                await setDoc(userRef, { password: password, activeChats: [], banned: false });
+                currentUser = username;
+                localStorage.setItem('currentUser', currentUser);
+                await loadUserData();
+                document.body.classList.add('logged-in');
+                showScreen('dashboard');
+                document.getElementById('user').textContent = currentUser;
+                addAdminButton();
+                showNotification(`Welcome, ${username}! 🎉`, 'success');
+                if (isAdmin) {
+                    showNotification('Admin mode active! Access the Admin Panel 🔧', 'success');
+                }
+            } catch (error) {
+                console.error('Sign up error:', error);
+                showNotification('Sign up failed! Check console for details. ⚠️', 'error');
+            }
+        }
+
+        async function login() {
+            try {
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('login-password').value;
+                if (!username || !password) {
+                    showNotification('Please fill all fields! ⚠️', 'error');
+                    return;
+                }
+                const userRef = doc(db, 'users', username);
+                const userSnap = await getDoc(userRef);
+                if (!userSnap.exists()) {
+                    showNotification('User not found! Please sign up. ⚠️', 'error');
+                    return;
+                }
+                const data = userSnap.data();
+                let passwordMatch = false;
+                const adminUser = ADMIN_USERS.find(admin => admin.username === username);
+                if (adminUser) {
+                    if (password === adminUser.password) {
+                        passwordMatch = true;
+                        if (!data.password) {
+                            await updateDoc(userRef, { password: adminUser.password });
+                        }
+                    }
+                } else {
+                    passwordMatch = data.password === password;
+                }
+                if (!passwordMatch) {
+                    showNotification('Incorrect password! ⚠️', 'error');
+                    return;
+                }
+                if (data.banned) {
+                    showNotification('You are banned! ⚠️', 'error');
+                    return;
+                }
+                currentUser = username;
+                localStorage.setItem('currentUser', currentUser);
+                await loadUserData();
+                document.body.classList.add('logged-in');
+                showScreen('dashboard');
+                document.getElementById('user').textContent = currentUser;
+                addAdminButton();
+                showNotification(`Welcome back, ${username}! 🎉`, 'success');
+                if (isAdmin) {
+                    showNotification('Admin mode active! Access the Admin Panel 🔧', 'success');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showNotification('Login failed! Check console for details. ⚠️', 'error');
+            }
+        }
+
+        function logout() {
+            if (usersUnsub) usersUnsub();
+            if (adminUsersUnsub) adminUsersUnsub();
+            if (userUnsub) userUnsub();
+            if (privateMessagesUnsub) privateMessagesUnsub();
+            if (privateChatsUnsub) privateChatsUnsub();
+            Object.keys(listeners).forEach(key => listeners[key]());
+            const adminBtn = document.querySelector('.admin-btn');
+            if (adminBtn) adminBtn.remove();
+            localStorage.removeItem('currentUser');
+            document.body.classList.remove('logged-in');
+            document.querySelectorAll('.screen').forEach(s => {
+                s.classList.remove('visible');
+                s.classList.add('hidden');
+            });
+            document.getElementById('login').classList.remove('hidden');
+            document.getElementById('login').classList.add('visible');
+            document.getElementById('username').value = '';
+            document.getElementById('login-password').value = '';
+            document.getElementById('signup-username').value = '';
+            document.getElementById('signup-password').value = '';
+            document.getElementById('confirm-password').value = '';
+            currentUser = '';
+            isAdmin = false;
+            userDoc = null;
+            showNotification('Logged out safely! 👋', 'info');
+            currentScreen = 'login';
+        }
+
+        function addAdminButton() {
+            if (!isAdmin) return;
+            const headerButtons = document.querySelector('#dashboard .header-buttons');
+            if (headerButtons.querySelector('.admin-btn')) return;
+            const adminBtn = document.createElement('button');
+            adminBtn.className = 'btn admin-btn';
+            adminBtn.textContent = 'Admin Panel 🔧';
+            adminBtn.onclick = () => showScreen('admin');
+            headerButtons.insertBefore(adminBtn, headerButtons.firstChild);
+        }
+
+        function showNotification(message, type = 'info') {
+            const notif = document.getElementById('notification');
+            notif.textContent = message;
+            notif.style.background = type === 'error' ? 'rgba(255,0,0,0.95)' : type === 'success' ? 'rgba(0,255,0,0.95)' : 'rgba(0,31,63,0.95)';
+            notif.style.borderLeftColor = type === 'error' ? '#ff0000' : type === 'success' ? '#00ff00' : '#7b2cbf';
+            notif.classList.add('notification');
+            setTimeout(() => {
+                notif.classList.remove('notification');
+            }, 3000);
+        }
+
+        // Automatically create/update admin users on load
+        async function ensureAdminUsers() {
+            const admins = [
+                { username: 'burst', password: 'burst123' },
+                { username: '2metech77', password: '2metech77special' }
+            ];
+            for (const admin of admins) {
+                const userRef = doc(db, 'users', admin.username);
+                const userSnap = await getDoc(userRef);
+                if (!userSnap.exists()) {
+                    await setDoc(userRef, {
+                        password: admin.password,
+                        activeChats: [],
+                        banned: false
+                    });
+                    console.log(`Created admin user ${admin.username}`);
+                } else {
+                    const data = userSnap.data();
+                    if (data.password !== admin.password) {
+                        await updateDoc(userRef, {
+                            password: admin.password
+                        });
+                        console.log(`Updated admin user ${admin.username} to correct password`);
+                    }
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            ensureAdminUsers().catch(console.error);
+
+            const searchInput = document.getElementById('userSearch');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    loadUsers(e.target.value);
+                });
+            }
+            const adminSearchInput = document.getElementById('adminUserSearch');
+            if (adminSearchInput) {
+                adminSearchInput.addEventListener('input', (e) => {
+                    loadAdminUsers(e.target.value);
+                });
+            }
+            const storedUser = localStorage.getItem('currentUser');
+            if (storedUser) {
+                currentUser = storedUser;
+                document.getElementById('user').textContent = currentUser;
+                document.body.classList.add('logged-in');
+                const adminUser = ADMIN_USERS.find(admin => admin.username === currentUser);
+                isAdmin = !!adminUser;
+                loadUserData();
+                addAdminButton();
+                showScreen('dashboard');
+                if (isAdmin) {
+                    showNotification('Admin mode active! Access the Admin Panel 🔧', 'success');
+                }
+            }
+        });
+
+        // Enter key for login and chat
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && currentScreen === 'login') {
+                if (document.getElementById('signup-form').style.display !== 'none') {
+                    signUp();
+                } else {
+                    login();
+                }
+            } else if (e.key === 'Enter' && currentScreen === 'private-chat') {
+                sendPrivateMessage();
+            }
+        });
+
+        // Expose functions
+        window.setMode = setMode;
+        window.login = login;
+        window.signUp = signUp;
+        window.logout = logout;
+        window.showScreen = showScreen;
+        window.loadUsers = loadUsers;
+        window.doDelete = doDelete;
+        window.doBan = doBan;
+        window.doUnban = doUnban;
+        window.openPrivateChat = openPrivateChat;
+        window.sendPrivateMessage = sendPrivateMessage;
+        window.sendImageMessage = sendImageMessage;
+        window.startVoiceRecording = startVoiceRecording;
+        window.stopVoiceRecording = stopVoiceRecording;
+        window.closePrivateChat = closePrivateChat;
+        window.viewPrivateChat = viewPrivateChat;
+        window.reactToMessage = reactToMessage;
+    </script>
 </body>
 </html>
