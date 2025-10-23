@@ -5,56 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>">
     <title>Chat Hub 💬</title>
-    <!-- Firebase SDK (Modular) -->
-    <script type="module">
-        // Import Firebase modules
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-        import { 
-            getFirestore, 
-            collection, 
-            doc, 
-            getDoc, 
-            setDoc, 
-            updateDoc, 
-            addDoc, 
-            onSnapshot, 
-            query, 
-            orderBy, 
-            limit, 
-            deleteDoc, 
-            arrayUnion, 
-            getDocs, 
-            arrayRemove 
-        } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-        import { 
-            getStorage, 
-            ref, 
-            uploadBytes, 
-            getDownloadURL 
-        } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
-
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyAaL7pqKB0fzxURNyblGYKo9q_8UUqj014",
-            authDomain: "idkdikdi-57db9.firebaseapp.com",
-            databaseURL: "https://idkdikdi-57db9-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "idkdikdi-57db9",
-            storageBucket: "idkdikdi-57db9.appspot.com",
-            messagingSenderId: "316879269067",
-            appId: "1:316879269067:web:f69397e5cd00892cebbf4e",
-            measurementId: "G-50NYC4TXYB"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const storage = getStorage(app);
-
-        // Expose Firebase instances for use in other scripts
-        window.app = app;
-        window.db = db;
-        window.storage = storage;
-    </script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400&display=swap');
         
@@ -765,11 +718,23 @@
         });
     </script>
 
-    <script type="module">
+    <script>
         console.log('Chat Hub v2 - Global Sync Loaded! 💬');
         
-        // Use Firebase instances from the global scope
-        const { db, storage } = window;
+        const firebaseConfig = {
+  apiKey: "AIzaSyBJ8wf399dp0nxFYl8y7SoarcDUOiZ7Wow",
+  authDomain: "chatappv2-b6bd8.firebaseapp.com",
+  projectId: "chatappv2-b6bd8",
+  storageBucket: "chatappv2-b6bd8.firebasestorage.app",
+  messagingSenderId: "458480303979",
+  appId: "1:458480303979:web:a3a83ed05856d23df6d62e",
+  measurementId: "G-ZS3DQJS2HW"
+};
+
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore(app);
+        db.settings({ experimentalForceLongPolling: true });
+        const storage = firebase.storage(app);
 
         let currentUser = '';
         let currentScreen = 'login';
@@ -816,11 +781,11 @@
         async function loadUserData() {
             try {
                 if (!currentUser) return;
-                const userRef = doc(db, 'users', currentUser);
+                const userRef = db.doc('users/' + currentUser);
                 userDoc = userRef;
                 if (userUnsub) userUnsub();
-                userUnsub = onSnapshot(userRef, (snap) => {
-                    if (snap.exists()) {
+                userUnsub = userRef.onSnapshot((snap) => {
+                    if (snap.exists) {
                         const data = snap.data();
                         if (data.banned) {
                             showNotification('You are banned! ⚠️', 'error');
@@ -846,8 +811,8 @@
             listeners = {};
             activeChats.forEach(otherUser => {
                 const chatId = getChatId(currentUser, otherUser);
-                const q = query(collection(db, `privateMessages/${chatId}/messages`), orderBy('time', 'desc'), limit(1));
-                listeners[otherUser] = onSnapshot(q, (snap) => {
+                const q = db.collection(`privateMessages/${chatId}/messages`).orderBy('time', 'desc').limit(1);
+                listeners[otherUser] = q.onSnapshot((snap) => {
                     if (!snap.empty) {
                         const msg = snap.docs[0].data();
                         if (msg.username !== currentUser) {
@@ -867,9 +832,9 @@
         function loadUsers(filter = '') {
             if (usersUnsub) usersUnsub();
             users = [];
-            const usersRef = collection(db, 'users');
-            const q = query(usersRef, limit(100));
-            usersUnsub = onSnapshot(q, (snap) => {
+            const usersRef = db.collection('users');
+            const q = usersRef.limit(100);
+            usersUnsub = q.onSnapshot((snap) => {
                 users = [];
                 snap.forEach((d) => {
                     const data = d.data();
@@ -900,9 +865,9 @@
         function loadAdminUsers(filter = '') {
             if (adminUsersUnsub) adminUsersUnsub();
             adminUsers = [];
-            const usersRef = collection(db, 'users');
-            const q = query(usersRef, limit(100));
-            adminUsersUnsub = onSnapshot(q, (snap) => {
+            const usersRef = db.collection('users');
+            const q = usersRef.limit(100);
+            adminUsersUnsub = q.onSnapshot((snap) => {
                 adminUsers = [];
                 snap.forEach((d) => {
                     const data = d.data();
@@ -934,7 +899,7 @@
             if (privateChatsUnsub) privateChatsUnsub();
             const chatsList = document.getElementById('private-chats-list');
             chatsList.innerHTML = '';
-            privateChatsUnsub = onSnapshot(collection(db, 'privateMessages'), (snap) => {
+            privateChatsUnsub = db.collection('privateMessages').onSnapshot((snap) => {
                 chatsList.innerHTML = '';
                 snap.forEach((d) => {
                     const chatId = d.id;
@@ -952,8 +917,8 @@
             const viewDiv = document.getElementById('private-chat-view');
             viewDiv.style.display = 'block';
             viewDiv.innerHTML = '';
-            const q = query(collection(db, `privateMessages/${chatId}/messages`), orderBy('time', 'asc'));
-            privateMessagesUnsub = onSnapshot(q, (snapshot) => {
+            const q = db.collection(`privateMessages/${chatId}/messages`).orderBy('time', 'asc');
+            privateMessagesUnsub = q.onSnapshot((snapshot) => {
                 viewDiv.innerHTML = '';
                 snapshot.forEach((doc) => {
                     const data = doc.data();
@@ -976,9 +941,9 @@
             showScreen('private-chat');
             const chatId = getChatId(currentUser, otherUser);
             if (!activeChats.includes(otherUser)) {
-                await updateDoc(userDoc, { activeChats: arrayUnion(otherUser) });
-                const otherRef = doc(db, 'users', otherUser);
-                await updateDoc(otherRef, { activeChats: arrayUnion(currentUser) });
+                await userDoc.update({ activeChats: firebase.firestore.FieldValue.arrayUnion(otherUser) });
+                const otherRef = db.doc('users/' + otherUser);
+                await otherRef.update({ activeChats: firebase.firestore.FieldValue.arrayUnion(currentUser) });
                 activeChats.push(otherUser);
                 listenToActiveChats();
             }
@@ -989,8 +954,8 @@
             if (privateMessagesUnsub) privateMessagesUnsub();
             const messagesDiv = document.getElementById('private-messages');
             messagesDiv.innerHTML = '';
-            const q = query(collection(db, `privateMessages/${chatId}/messages`), orderBy('time', 'asc'), limit(50));
-            privateMessagesUnsub = onSnapshot(q, (snapshot) => {
+            const q = db.collection(`privateMessages/${chatId}/messages`).orderBy('time', 'asc').limit(50);
+            privateMessagesUnsub = q.onSnapshot((snapshot) => {
                 messagesDiv.innerHTML = '';
                 snapshot.forEach((d) => {
                     const data = d.data();
@@ -1027,9 +992,9 @@
         }
 
         async function reactToMessage(messageId, emoji, chatId) {
-            const msgRef = doc(db, `privateMessages/${chatId}/messages`, messageId);
-            const msgSnap = await getDoc(msgRef);
-            if (msgSnap.exists()) {
+            const msgRef = db.doc(`privateMessages/${chatId}/messages/${messageId}`);
+            const msgSnap = await msgRef.get();
+            if (msgSnap.exists) {
                 let reactions = msgSnap.data().reactions || [];
                 const existing = reactions.find(r => r.emoji === emoji);
                 if (existing) {
@@ -1037,7 +1002,7 @@
                 } else {
                     reactions.push({emoji, count: 1});
                 }
-                await updateDoc(msgRef, { reactions });
+                await msgRef.update({ reactions });
             }
         }
 
@@ -1047,8 +1012,8 @@
             if (!text || !currentUser || !currentPrivateChatUser) return;
             text = censorText(text);
             const chatId = getChatId(currentUser, currentPrivateChatUser);
-            const messagesRef = collection(db, `privateMessages/${chatId}/messages`);
-            await addDoc(messagesRef, {
+            const messagesRef = db.collection(`privateMessages/${chatId}/messages`);
+            await messagesRef.add({
                 text,
                 username: currentUser,
                 time: new Date(),
@@ -1062,12 +1027,12 @@
             const file = input.files[0];
             if (!file || !currentUser || !currentPrivateChatUser) return;
             const chatId = getChatId(currentUser, currentPrivateChatUser);
-            const storageRef = ref(storage, `images/${chatId}/${Date.now()}_${file.name}`);
+            const storageRef = storage.ref(`images/${chatId}/${Date.now()}_${file.name}`);
             try {
-                const snapshot = await uploadBytes(storageRef, file);
-                const imageUrl = await getDownloadURL(snapshot.ref);
-                const messagesRef = collection(db, `privateMessages/${chatId}/messages`);
-                await addDoc(messagesRef, {
+                const snapshot = await storageRef.put(file);
+                const imageUrl = await snapshot.ref.getDownloadURL();
+                const messagesRef = db.collection(`privateMessages/${chatId}/messages`);
+                await messagesRef.add({
                     imageUrl,
                     username: currentUser,
                     time: new Date(),
@@ -1093,12 +1058,12 @@
                 mediaRecorder.onstop = async () => {
                     const blob = new Blob(chunks, { type: 'audio/webm' });
                     const chatId = getChatId(currentUser, currentPrivateChatUser);
-                    const storageRef = ref(storage, `audio/${chatId}/${Date.now()}.webm`);
+                    const storageRef = storage.ref(`audio/${chatId}/${Date.now()}.webm`);
                     try {
-                        const snapshot = await uploadBytes(storageRef, blob);
-                        const audioUrl = await getDownloadURL(snapshot.ref);
-                        const messagesRef = collection(db, `privateMessages/${chatId}/messages`);
-                        await addDoc(messagesRef, {
+                        const snapshot = await storageRef.put(blob);
+                        const audioUrl = await snapshot.ref.getDownloadURL();
+                        const messagesRef = db.collection(`privateMessages/${chatId}/messages`);
+                        await messagesRef.add({
                             audioUrl,
                             username: currentUser,
                             time: new Date(),
@@ -1143,13 +1108,13 @@
                 showNotification('Cannot delete your own account! ⚠️', 'error');
                 return;
             }
-            const userRef = doc(db, 'users', user);
-            const userSnap = await getDoc(userRef);
-            if (!userSnap.exists()) {
+            const userRef = db.doc('users/' + user);
+            const userSnap = await userRef.get();
+            if (!userSnap.exists) {
                 showNotification('User not found! ⚠️', 'error');
                 return;
             }
-            await deleteDoc(userRef);
+            await userRef.delete();
             showNotification(`Deleted user ${user}! 🗑️`, 'success');
             document.getElementById('selectedUser').value = '';
             loadAdminUsers(document.getElementById('adminUserSearch').value);
@@ -1165,13 +1130,13 @@
                 showNotification('Cannot ban your own account! ⚠️', 'error');
                 return;
             }
-            const userRef = doc(db, 'users', user);
-            const userSnap = await getDoc(userRef);
-            if (!userSnap.exists()) {
+            const userRef = db.doc('users/' + user);
+            const userSnap = await userRef.get();
+            if (!userSnap.exists) {
                 showNotification('User not found! ⚠️', 'error');
                 return;
             }
-            await updateDoc(userRef, { banned: true });
+            await userRef.update({ banned: true });
             showNotification(`Banned user ${user}! 🚫`, 'success');
             document.getElementById('selectedUser').value = '';
             loadAdminUsers(document.getElementById('adminUserSearch').value);
@@ -1183,13 +1148,13 @@
                 showNotification('Invalid input! ⚠️', 'error');
                 return;
             }
-            const userRef = doc(db, 'users', user);
-            const userSnap = await getDoc(userRef);
-            if (!userSnap.exists()) {
+            const userRef = db.doc('users/' + user);
+            const userSnap = await userRef.get();
+            if (!userSnap.exists) {
                 showNotification('User not found! ⚠️', 'error');
                 return;
             }
-            await updateDoc(userRef, { banned: false });
+            await userRef.update({ banned: false });
             showNotification(`Unbanned user ${user}! ✅`, 'success');
             document.getElementById('selectedUser').value = '';
             loadAdminUsers(document.getElementById('adminUserSearch').value);
@@ -1245,13 +1210,13 @@
                     showNotification('Admin username cannot be registered! Use login. ⚠️', 'error');
                     return;
                 }
-                const userRef = doc(db, 'users', username);
-                const userSnap = await getDoc(userRef);
-                if (userSnap.exists()) {
+                const userRef = db.doc('users/' + username);
+                const userSnap = await userRef.get();
+                if (userSnap.exists) {
                     showNotification('User already exists! Please login instead. ⚠️', 'error');
                     return;
                 }
-                await setDoc(userRef, { password: password, activeChats: [], banned: false });
+                await userRef.set({ password: password, activeChats: [], banned: false });
                 currentUser = username;
                 localStorage.setItem('currentUser', currentUser);
                 await loadUserData();
@@ -1277,9 +1242,9 @@
                     showNotification('Please fill all fields! ⚠️', 'error');
                     return;
                 }
-                const userRef = doc(db, 'users', username);
-                const userSnap = await getDoc(userRef);
-                if (!userSnap.exists()) {
+                const userRef = db.doc('users/' + username);
+                const userSnap = await userRef.get();
+                if (!userSnap.exists) {
                     showNotification('User not found! Please sign up. ⚠️', 'error');
                     return;
                 }
@@ -1290,7 +1255,7 @@
                     if (password === adminUser.password) {
                         passwordMatch = true;
                         if (!data.password) {
-                            await updateDoc(userRef, { password: adminUser.password });
+                            await userRef.update({ password: adminUser.password });
                         }
                     }
                 } else {
@@ -1378,10 +1343,10 @@
                 { username: 'burst', password: 'burst123' }
             ];
             for (const admin of admins) {
-                const userRef = doc(db, 'users', admin.username);
-                const userSnap = await getDoc(userRef);
-                if (!userSnap.exists()) {
-                    await setDoc(userRef, {
+                const userRef = db.doc('users/' + admin.username);
+                const userSnap = await userRef.get();
+                if (!userSnap.exists) {
+                    await userRef.set({
                         password: admin.password,
                         activeChats: [],
                         banned: false
@@ -1390,7 +1355,7 @@
                 } else {
                     const data = userSnap.data();
                     if (data.password !== admin.password) {
-                        await updateDoc(userRef, {
+                        await userRef.update({
                             password: admin.password
                         });
                         console.log(`Updated admin user ${admin.username} to correct password`);
@@ -1470,25 +1435,6 @@
                 sendPrivateMessage();
             }
         });
-
-        // Expose functions
-        window.setMode = setMode;
-        window.login = login;
-        window.signUp = signUp;
-        window.logout = logout;
-        window.showScreen = showScreen;
-        window.loadUsers = loadUsers;
-        window.doDelete = doDelete;
-        window.doBan = doBan;
-        window.doUnban = doUnban;
-        window.openPrivateChat = openPrivateChat;
-        window.sendPrivateMessage = sendPrivateMessage;
-        window.sendImageMessage = sendImageMessage;
-        window.startVoiceRecording = startVoiceRecording;
-        window.stopVoiceRecording = stopVoiceRecording;
-        window.closePrivateChat = closePrivateChat;
-        window.viewPrivateChat = viewPrivateChat;
-        window.reactToMessage = reactToMessage;
     </script>
 </body>
 </html>
