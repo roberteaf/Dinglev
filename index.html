@@ -26,30 +26,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);}
 .g3{width:350px;height:350px;top:40%;left:40%;background:rgba(168,85,247,0.05);animation-duration:12s;animation-delay:-3s;}
 @keyframes glowFloat{0%{transform:translate(0,0) scale(1);}50%{transform:translate(30px,-20px) scale(1.05);}100%{transform:translate(-15px,25px) scale(0.97);}}
 
-async function doLogin() {
-  var un = document.getElementById('at-user').value.trim();
-  var ed = document.getElementById('at-ed').value;
-  var pw = document.getElementById('at-pw').value;
-
-  if(!un || !pw) { notif('Fill all fields','err'); return; }
-  notif('Logging in...','inf');
-  
-  var s = await fsGet('users', un);
-  if(!s.exists) { notif('User not found','err'); return; }
-  var d = s.data();
-  
-  // THE REST OF YOUR EXISTING CODE SHOULD FOLLOW HERE:
-  if(d.banned){notif('Account banned: '+(d.banReason||'Contact support'),'err');return;}
-  if(d.edition&&d.edition!==ed){notif('Wrong edition selected','err');return;}
-  if(d.password!==pw){notif('Wrong password','err');return;}
-  CU=un;CE=ed;
-  try{localStorage.setItem('cu',un);localStorage.setItem('ce',ed);}catch(e){}
-  await loadUser();
-  document.getElementById('u-name').textContent=CU;
-  document.getElementById('u-ed').textContent=CE;
-  addAdminBtn();go('dashboard');notif('Welcome back, '+un+'!','ok');
-} // Ensure this closing bracket exists!
-
 /* LOGIN */
 #login{align-items:center;justify-content:center;}
 .login-wrap{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:32px;animation:riseUp .55s cubic-bezier(.16,1,.3,1);}
@@ -391,6 +367,81 @@ async function doLogin() {
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:rgba(124,58,237,.3);border-radius:2px;}
+
+/* CRASH CHART */
+.crash-chart-wrap{width:100%;height:280px;background:linear-gradient(to top,rgba(0,0,24,.9),rgba(4,6,12,.5));border:1px solid var(--border);border-radius:16px;position:relative;overflow:hidden;}
+#crash-canvas{position:absolute;inset:0;width:100%;height:100%;}
+#crash-dot{position:absolute;width:10px;height:10px;border-radius:50%;background:#a855f7;box-shadow:0 0 12px #a855f7,0 0 24px rgba(168,85,247,.5);z-index:4;transform:translate(-50%,-50%);transition:none;will-change:transform;}
+#crash-mult-big{position:absolute;top:16px;left:50%;transform:translateX(-50%);font-family:'Space Grotesk',sans-serif;font-size:2.4rem;font-weight:800;color:#fff;text-shadow:0 0 30px rgba(124,58,237,.8);z-index:3;pointer-events:none;}
+#crash-status{position:absolute;top:16px;left:16px;font-size:.75rem;font-weight:600;color:var(--muted2);z-index:3;padding:4px 10px;background:rgba(0,0,0,.5);border:1px solid var(--border);border-radius:20px;}
+.crash-grid-line{position:absolute;left:0;right:0;height:1px;background:rgba(255,255,255,.04);}
+.crash-grid-label{position:absolute;left:8px;font-size:.6rem;color:rgba(255,255,255,.2);}
+/* PLINKO */
+.plinko-wrap{display:flex;gap:16px;width:100%;justify-content:center;align-items:flex-start;}
+#plinko-canvas{border-radius:12px;background:rgba(0,0,0,.4);border:1px solid var(--border);cursor:pointer;}
+.plinko-buckets{display:flex;width:320px;gap:2px;margin-top:4px;}
+.plinko-bucket{flex:1;padding:6px 2px;text-align:center;border-radius:6px;font-size:.62rem;font-weight:700;border:1px solid transparent;transition:all .2s;}
+.plinko-side{display:flex;flex-direction:column;gap:10px;min-width:130px;}
+.plinko-risk{display:flex;gap:4px;background:rgba(0,0,0,.3);border-radius:8px;padding:3px;}
+.prisk-btn{flex:1;padding:5px;text-align:center;font-size:.7rem;font-weight:600;border-radius:6px;cursor:pointer;color:var(--muted2);background:transparent;border:none;transition:all .2s;}
+.prisk-btn.on{background:rgba(124,58,237,.22);color:#c084fc;}
+/* KENO */
+.keno-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;width:100%;max-width:420px;}
+.keno-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .2s;user-select:none;font-family:'Space Grotesk',sans-serif;}
+.keno-cell:hover{background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.4);}
+.keno-cell.selected{background:rgba(124,58,237,.3);border-color:rgba(124,58,237,.7);color:#c084fc;box-shadow:0 0 12px rgba(124,58,237,.3);}
+.keno-cell.hit{background:rgba(16,185,129,.25);border-color:rgba(16,185,129,.6);color:#34d399;animation:kenoPop .35s cubic-bezier(.34,1.56,.64,1);}
+.keno-cell.miss{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.35);color:#f87171;}
+@keyframes kenoPop{0%{transform:scale(.5);opacity:0;}100%{transform:scale(1);opacity:1;}}
+.keno-picks-info{display:flex;gap:8px;font-size:.76rem;color:var(--muted2);flex-wrap:wrap;justify-content:center;}
+.keno-picks-info span{padding:3px 10px;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:20px;}
+.keno-picks-info span b{color:var(--text);}
+/* ADMIN TERMINAL IMPROVEMENTS */
+.term-suggestion{display:inline-block;padding:1px 6px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:4px;font-size:.68rem;color:#f59e0b;cursor:pointer;margin:1px;}
+.term-suggestion:hover{background:rgba(245,158,11,.2);}
+#term-out .term-line{padding:2px 0;}
+.admin-stat-bar{height:4px;border-radius:2px;background:rgba(255,255,255,.08);margin-top:4px;overflow:hidden;}
+.admin-stat-bar-fill{height:100%;border-radius:2px;transition:width .8s ease;}
+/* QOL IMPROVEMENTS */
+.bet-history{width:100%;max-height:120px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;}
+.bet-hist-item{display:flex;align-items:center;gap:8px;padding:5px 10px;background:rgba(0,0,0,.25);border-radius:6px;font-size:.72rem;}
+.bet-hist-item .bhi-game{color:var(--muted2);min-width:60px;}
+.bet-hist-item .bhi-amt.win{color:#34d399;}.bet-hist-item .bhi-amt.lose{color:#f87171;}.bet-hist-item .bhi-amt.push{color:var(--muted2);}
+.bet-hist-item .bhi-time{color:var(--muted2);margin-left:auto;font-size:.65rem;}
+
+
+/* COIN FLIP */
+.coin-wrap{display:flex;flex-direction:column;align-items:center;gap:20px;}
+.coin{width:120px;height:120px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:3rem;border:4px solid rgba(245,158,11,.5);box-shadow:0 0 30px rgba(245,158,11,.2);background:radial-gradient(circle at 35% 35%,rgba(251,191,36,.3),rgba(245,158,11,.1));transition:transform .1s;will-change:transform;}
+.coin.flipping{animation:coinSpin 1s ease-in-out;}
+@keyframes coinSpin{0%{transform:rotateY(0) scale(1);}25%{transform:rotateY(180deg) scale(.8);}50%{transform:rotateY(360deg) scale(1.1);}75%{transform:rotateY(540deg) scale(.8);}100%{transform:rotateY(720deg) scale(1);}}
+.coin-btns{display:flex;gap:12px;}
+.coin-choice{padding:12px 32px;font-size:.92rem;font-weight:700;border-radius:10px;cursor:pointer;transition:all .2s;}
+.coin-choice.heads{background:rgba(245,158,11,.2);border:2px solid rgba(245,158,11,.5);color:#fbbf24;}
+.coin-choice.tails{background:rgba(124,58,237,.2);border:2px solid rgba(124,58,237,.5);color:#c084fc;}
+.coin-choice.sel{box-shadow:0 0 0 3px #fff;transform:scale(1.05);}
+.coin-streak{display:flex;gap:4px;justify-content:center;flex-wrap:wrap;}
+.cs-item{width:20px;height:20px;border-radius:50%;font-size:.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.cs-h{background:rgba(245,158,11,.3);color:#fbbf24;border:1px solid rgba(245,158,11,.5);}
+.cs-t{background:rgba(124,58,237,.3);color:#c084fc;border:1px solid rgba(124,58,237,.5);}
+
+
+
+/* CHICKEN */
+.chicken-road{width:100%;max-width:420px;display:flex;flex-direction:column;gap:5px;margin:0 auto;}
+.chicken-row{display:flex;gap:5px;align-items:center;}
+.chicken-row-lbl{font-size:.64rem;font-weight:600;color:var(--muted2);width:16px;text-align:right;flex-shrink:0;}
+.chicken-lane{flex:1;height:52px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .2s cubic-bezier(.34,1.56,.64,1);user-select:none;position:relative;}
+.chicken-lane.act:hover{transform:scale(1.06);background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.5);}
+.chicken-lane.safe{background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.5);animation:sPop .3s cubic-bezier(.34,1.56,.64,1);}
+.chicken-lane.car{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.5);animation:boomShake .4s ease;}
+.chicken-lane.dim{opacity:.3;pointer-events:none;}
+.chicken-mult{position:absolute;top:3px;right:5px;font-size:.58rem;font-weight:700;color:rgba(255,255,255,.35);}
+.chicken-player{font-size:1.6rem;position:absolute;transition:all .3s;}
+.chicken-info{display:flex;gap:12px;font-size:.76rem;color:var(--muted2);justify-content:center;}
+.chicken-info span{padding:3px 10px;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:20px;}
+.chicken-info span b{color:var(--text);}
+
 </style>
 </head>
 <body>
@@ -404,7 +455,7 @@ async function doLogin() {
   <div class="login-wrap">
     <div class="brand">
       <div class="brand-name">DonutDrop</div>
-      <div class="brand-tag">Provably Fair · Minecraft Casino</div>
+      <div class="brand-tag">Minecraft Casino</div>
     </div>
     <div class="auth-card">
       <div class="tab-row">
@@ -452,13 +503,18 @@ async function doLogin() {
     <div class="main-inner">
       <div class="ggrid">
         <div class="gcard cm" onclick="go('mines')"><div class="shine"></div><div class="gcard-ico">💣</div><div class="gcard-name">Mines</div><div class="gcard-sub">Avoid the bombs</div></div>
-        <div class="gcard cd" onclick="go('dice')"><div class="shine"></div><div class="gcard-ico">🎲</div><div class="gcard-name">Dice</div><div class="gcard-sub">Roll over or under 7</div></div>
+        <div class="gcard ccr" onclick="go('crash')"><div class="shine"></div><div class="gcard-ico">📈</div><div class="gcard-name">Crash</div><div class="gcard-sub">Cash out before crash</div></div>
+        <div class="gcard" style="--ca:rgba(251,191,36,.12);--cb:rgba(245,158,11,.06);--cc:rgba(251,191,36,.45);--cg:rgba(251,191,36,.7)" onclick="go('plinko')"><div class="shine"></div><div class="gcard-ico">🎯</div><div class="gcard-name">Plinko</div><div class="gcard-sub">Drop the ball</div></div>
+
+
+        <div class="gcard" style="--ca:rgba(16,185,129,.12);--cb:rgba(6,182,212,.06);--cc:rgba(16,185,129,.45);--cg:rgba(16,185,129,.7)" onclick="go('chicken')"><div class="shine"></div><div class="gcard-ico">🐔</div><div class="gcard-name">Chicken Cross</div><div class="gcard-sub">Dodge the cars</div></div>
         <div class="gcard ct" onclick="go('towers')"><div class="shine"></div><div class="gcard-ico">🏗️</div><div class="gcard-name">Towers</div><div class="gcard-sub">Climb without a skull</div></div>
         <div class="gcard cbj" onclick="go('blackjack')"><div class="shine"></div><div class="gcard-ico">🃏</div><div class="gcard-name">Blackjack</div><div class="gcard-sub">Beat the dealer</div></div>
-        <div class="gcard ccr" onclick="go('crash')"><div class="shine"></div><div class="gcard-ico">🚀</div><div class="gcard-name">Crash</div><div class="gcard-sub">Cash out in time</div></div>
-        <div class="gcard off"><div class="shine"></div><div class="gcard-ico">⏳</div><div class="gcard-name">Coming Soon</div><div class="gcard-sub">Stay tuned</div></div>
+        <div class="gcard cd" onclick="go('dice')"><div class="shine"></div><div class="gcard-ico">🎲</div><div class="gcard-name">Dice</div><div class="gcard-sub">Roll over or under 7</div></div>
       </div>
     </div>
+    </div>
+</div>
   </div>
 </div>
 
@@ -550,7 +606,7 @@ async function doLogin() {
     </div>
 
     <!-- Tab 0: Terminal -->
-    <div class="dtab-content" id="dtp0">
+    <div class="dtab-content" id="dbtp0">
       <div id="term-out"></div>
       <div class="term-input-row">
         <span class="term-prompt">$</span>
@@ -560,7 +616,7 @@ async function doLogin() {
     </div>
 
     <!-- Tab 1: Broadcast -->
-    <div class="dtab-content" id="dtp1" style="display:none">
+    <div class="dtab-content" id="dbtp1" style="display:none">
       <div class="debug-section">
         <h4>📢 Announcement Banner</h4>
         <div class="debug-row">
@@ -587,7 +643,7 @@ async function doLogin() {
     </div>
 
     <!-- Tab 2: Balance -->
-    <div class="dtab-content" id="dtp2" style="display:none">
+    <div class="dtab-content" id="dbtp2" style="display:none">
       <div class="debug-section">
         <h4>👤 Single User Balance</h4>
         <div class="debug-row">
@@ -625,7 +681,7 @@ async function doLogin() {
     </div>
 
     <!-- Tab 3: Users -->
-    <div class="dtab-content" id="dtp3" style="display:none">
+    <div class="dtab-content" id="dbtp3" style="display:none">
       <div class="debug-section">
         <h4>🔍 Lookup User</h4>
         <div class="debug-row">
@@ -657,7 +713,7 @@ async function doLogin() {
           <input class="dinp" id="del-user" placeholder="Username to delete">
           <button class="dbtn red" onclick="deleteAccount()">Delete</button>
         </div>
-        <p style="font-size:.72rem;color:var(--muted2);margin-top:6px;">⚠ Permanent. Cannot delete admin accounts (burst, dlame, metech).</p>
+        <p style="font-size:.72rem;color:var(--muted2);margin-top:6px;">⚠ Permanent. Cannot delete admin accounts (burst, metech).</p>
       </div>
       <div class="debug-section">
         <h4>📋 All Users List</h4>
@@ -694,7 +750,7 @@ async function doLogin() {
     </div>
 
     <!-- Tab 4: System -->
-    <div class="dtab-content" id="dtp4" style="display:none">
+    <div class="dtab-content" id="dbtp4" style="display:none">
       <div class="debug-section">
         <h4>📊 Platform Stats</h4>
         <button class="dbtn gold" onclick="loadStats()">Refresh Stats</button>
@@ -735,7 +791,7 @@ async function doLogin() {
     </div>
 
     <!-- Tab 5: Game Control -->
-    <div class="dtab-content" id="dtp5" style="display:none">
+    <div class="dtab-content" id="dbtp5" style="display:none">
       <div class="debug-section">
         <h4>🎮 Force Game Outcome (next round)</h4>
         <p style="font-size:.75rem;color:var(--muted2);margin-bottom:10px;">Force the next outcome for a specific game type. Use for testing only.</p>
@@ -767,7 +823,7 @@ async function doLogin() {
     </div>
 
     <!-- Tab 6: Logs -->
-    <div class="dtab-content" id="dtp6" style="display:none">
+    <div class="dtab-content" id="dbtp6" style="display:none">
       <div class="debug-section">
         <h4>📜 Admin Action Logs</h4>
         <div class="debug-row" style="margin-bottom:8px;">
@@ -803,7 +859,7 @@ async function doLogin() {
     </div>
 
     <!-- Tab 7: Notes -->
-    <div class="dtab-content" id="dtp7" style="display:none">
+    <div class="dtab-content" id="dbtp7" style="display:none">
       <div class="debug-section">
         <h4>📝 User Notes</h4>
         <p style="font-size:.75rem;color:var(--muted2);margin-bottom:10px;">Attach private admin notes to any user account. Only visible to admins.</p>
@@ -1005,29 +1061,97 @@ async function doLogin() {
 <div id="crash" class="screen">
   <div class="game-hdr">
     <button class="back-btn" onclick="go('dashboard')">← Back</button>
-    <div class="gtitle">🚀 Crash</div>
+    <div class="gtitle">📈 Crash</div>
     <div class="bal-pill"><div class="bi"><div class="bl">Balance</div><div class="bv m">$<span id="bal-cr">0</span></div></div></div>
   </div>
   <div class="game-main"><div class="gpanel">
-    <div class="gtab-content visible" id="crtp0">
-      <div class="irow" id="cr-irow">
-        <label>Bet $</label>
-        <input class="ginput" id="cr-bet" value="10" placeholder="10 or 1k">
-        <button class="abtn" onclick="betCrash()">Place Bet</button>
-      </div>
-      <div class="quick-bets" id="cr-quick">
-        <button class="qbet" onclick="halfBet('cr-bet')">½</button>
-        <button class="qbet" onclick="doubleBet('cr-bet')">2×</button>
-      </div>
-      <div class="cvp" id="cr-vp">
-        <div id="ccount">Waiting...</div>
-        <div class="ctrail" id="cr-trail"></div>
-        <div id="crocket">🚀</div>
-        <div id="cmult">1.00x</div>
-      </div>
-      <button id="cr-co" class="cobtn" onclick="cashCrash()" style="display:none">Cash Out Now</button>
-      <div id="cr-res" class="rbox">Bet and wait for launch</div>
+    <div class="irow" id="cr-irow">
+      <label>Bet $</label>
+      <input class="ginput" id="cr-bet" value="10" placeholder="10 or 1k">
+      <button class="abtn" onclick="betCrash()">Place Bet</button>
     </div>
+    <div class="quick-bets">
+      <button class="qbet" onclick="quickBet('cr-bet',10)">$10</button>
+      <button class="qbet" onclick="quickBet('cr-bet',50)">$50</button>
+      <button class="qbet" onclick="quickBet('cr-bet',100)">$100</button>
+      <button class="qbet" onclick="halfBet('cr-bet')">½</button>
+      <button class="qbet" onclick="doubleBet('cr-bet')">2×</button>
+    </div>
+    <div class="crash-chart-wrap">
+      <canvas id="crash-canvas"></canvas>
+      <div id="crash-dot"></div>
+      <div id="crash-mult-big">1.00x</div>
+      <div id="crash-status">Waiting...</div>
+    </div>
+    <button id="cr-co" class="cobtn" onclick="cashCrash()" style="display:none">💰 Cash Out Now</button>
+    <div id="cr-res" class="rbox">Bet and wait for round to start</div>
+  </div></div>
+</div>
+
+<!-- ══ PLINKO ══ -->
+<div id="plinko" class="screen">
+  <div class="game-hdr">
+    <button class="back-btn" onclick="go('dashboard')">← Back</button>
+    <div class="gtitle">🎯 Plinko</div>
+    <div class="bal-pill"><div class="bi"><div class="bl">Balance</div><div class="bv m">$<span id="bal-pl">0</span></div></div></div>
+  </div>
+  <div class="game-main"><div class="gpanel">
+    <div class="irow">
+      <label>Bet $</label>
+      <input class="ginput" id="pl-bet" value="10" placeholder="10">
+      <label>Risk</label>
+      <div class="plinko-risk">
+        <button class="prisk-btn on" id="prisk-low" onclick="setPlinkRisk('low')">Low</button>
+        <button class="prisk-btn" id="prisk-med" onclick="setPlinkRisk('med')">Med</button>
+        <button class="prisk-btn" id="prisk-high" onclick="setPlinkRisk('high')">High</button>
+      </div>
+      <button class="abtn" onclick="dropPlinko()">Drop Ball</button>
+    </div>
+    <div class="quick-bets">
+      <button class="qbet" onclick="quickBet('pl-bet',10)">$10</button>
+      <button class="qbet" onclick="quickBet('pl-bet',50)">$50</button>
+      <button class="qbet" onclick="quickBet('pl-bet',100)">$100</button>
+      <button class="qbet" onclick="halfBet('pl-bet')">½</button>
+      <button class="qbet" onclick="doubleBet('pl-bet')">2×</button>
+    </div>
+    <canvas id="plinko-canvas" width="320" height="360"></canvas>
+    <div class="plinko-buckets" id="plinko-buckets"></div>
+    <div id="pl-res" class="rbox">Drop the ball to play</div>
+  </div></div>
+</div>
+
+
+
+<!-- ══ CHICKEN ══ -->
+<div id="chicken" class="screen">
+  <div class="game-hdr"><button class="back-btn" onclick="go('dashboard')">← Back</button><div class="gtitle">🐔 Chicken Cross</div><div class="bal-pill"><div class="bi"><div class="bl">Balance</div><div class="bv m">$<span id="bal-ck">0</span></div></div></div></div>
+  <div class="game-main"><div class="gpanel">
+    <div class="irow">
+      <label>Bet $</label><input class="ginput" id="ck-bet" value="10" placeholder="10">
+      <label>Cars/row</label>
+      <select class="gsel" id="ck-diff">
+        <option value="1">1 car (easy)</option>
+        <option value="2" selected>2 cars (medium)</option>
+        <option value="3">3 cars (hard)</option>
+      </select>
+      <button class="abtn" id="ck-start" onclick="startChicken()">Cross!</button>
+      <button class="abtn" id="ck-again" onclick="startChicken()" style="display:none;background:linear-gradient(135deg,rgba(16,185,129,.5),rgba(6,182,212,.3));border-color:rgba(16,185,100,.5)">▶ Again</button>
+    </div>
+    <div class="quick-bets">
+      <button class="qbet" onclick="quickBet('ck-bet',10)">$10</button>
+      <button class="qbet" onclick="quickBet('ck-bet',50)">$50</button>
+      <button class="qbet" onclick="quickBet('ck-bet',100)">$100</button>
+      <button class="qbet" onclick="halfBet('ck-bet')">½</button>
+      <button class="qbet" onclick="doubleBet('ck-bet')">2×</button>
+    </div>
+    <div class="chicken-info">
+      <span>Row: <b id="ck-row">0</b>/8</span>
+      <span>Mult: <b id="ck-mult-disp" style="color:#f59e0b">1.00x</b></span>
+      <span>Payout: <b id="ck-payout-disp" style="color:#34d399">$0</b></span>
+    </div>
+    <div class="chicken-road" id="ck-road"></div>
+    <button id="ck-co" class="cobtn" onclick="cashChicken()" style="display:none">🐔 Cash Out</button>
+    <div id="ck-res" class="rbox">Set difficulty and start crossing!</div>
   </div></div>
 </div>
 
@@ -1178,7 +1302,25 @@ async function doLogin() {
     <div class="gf-divider"></div>
     <div class="gf-lbl" style="margin-bottom:4px">History</div>
     <div class="gf-history" id="gf-crash-history"><div style="color:var(--muted2);font-size:.72rem;text-align:center;padding:8px">No rounds yet</div></div>
+  
+  <!-- PLINKO -->
+  <div class="gf-game-content" id="gfc-plinko">
+    <div class="gf-row"><div class="gf-lbl">Client Seed</div><div class="gf-val" id="gf-plinko-client">—</div><button class="gf-new-seed" onclick="newClientSeed('plinko')">↻ New</button></div>
+    <div class="gf-row"><div class="gf-lbl">Revealed Seed</div><div class="gf-val pending" id="gf-plinko-revealed">Drop a ball to reveal</div></div>
+    <div class="gf-row"><div class="gf-lbl">Nonce</div><div class="gf-val pending" id="gf-plinko-nonce">—</div></div>
+    <div class="gf-divider"></div>
+    <div class="gf-history" id="gf-plinko-history"><div style="color:var(--muted2);font-size:.7rem;text-align:center;padding:6px">No rounds yet</div></div>
   </div>
+
+  <!-- CHICKEN -->
+  <div class="gf-game-content" id="gfc-chicken">
+    <div class="gf-row"><div class="gf-lbl">Client Seed</div><div class="gf-val" id="gf-chicken-client">—</div><button class="gf-new-seed" onclick="newClientSeed('chicken')">↻ New</button></div>
+    <div class="gf-row"><div class="gf-lbl">Revealed Seed</div><div class="gf-val pending" id="gf-chicken-revealed">Play to reveal</div></div>
+    <div class="gf-row"><div class="gf-lbl">Nonce</div><div class="gf-val pending" id="gf-chicken-nonce">—</div></div>
+    <div class="gf-divider"></div>
+    <div class="gf-history" id="gf-chicken-history"><div style="color:var(--muted2);font-size:.7rem;text-align:center;padding:6px">No rounds yet</div></div>
+  </div>
+</div>
 </div>
 
 <div class="notif" id="notif"></div>
@@ -1200,15 +1342,15 @@ async function doLogin() {
   // Crash stars
   window.addEventListener('load',function(){
     var vp=document.getElementById('cr-vp');
-    for(var i=0;i<35;i++){var s=document.createElement('div');s.className='cstar';var sz=Math.random()*2+.5;s.style.cssText='width:'+sz+'px;height:'+sz+'px;top:'+(Math.random()*90)+'%;left:'+(Math.random()*100)+'%;--d:'+(Math.random()*3+1).toFixed(1)+'s;animation-delay:'+(Math.random()*3).toFixed(1)+'s;';vp.appendChild(s);}
+    if(vp){for(var i=0;i<35;i++){var s=document.createElement('div');s.className='cstar';var sz=Math.random()*2+.5;s.style.cssText='width:'+sz+'px;height:'+sz+'px;top:'+(Math.random()*90)+'%;left:'+(Math.random()*100)+'%;--d:'+(Math.random()*3+1).toFixed(1)+'s;animation-delay:'+(Math.random()*3).toFixed(1)+'s;';vp.appendChild(s);}}
   });
 })();
 </script>
 
 <script>
 // ── FIRESTORE REST API ──
-var PROJECT='fornite-d9d6b';
-var API_KEY='AIzaSyDRuEmGmNtB7MQle8ENzSignWH1V40qfpA';
+var PROJECT='idkdikdi-57db9';
+var API_KEY='AIzaSyAaL7pqKB0fzxURNyblGYKo9q_8UUqj014';
 var BASE='https://firestore.googleapis.com/v1/projects/'+PROJECT+'/databases/(default)/documents';
 
 function toVal(fv){if(!fv)return null;if(fv.stringValue!==undefined)return fv.stringValue;if(fv.integerValue!==undefined)return Number(fv.integerValue);if(fv.doubleValue!==undefined)return Number(fv.doubleValue);if(fv.booleanValue!==undefined)return fv.booleanValue;if(fv.nullValue!==undefined)return null;if(fv.mapValue)return fromFields(fv.mapValue.fields||{});return null;}
@@ -1232,7 +1374,7 @@ async function sha256(msg){
 function genSeed(){return Array.from(crypto.getRandomValues(new Uint8Array(16))).map(function(b){return b.toString(16).padStart(2,'0');}).join('');}
 
 // ── FAIRNESS SEEDS ──
-var seeds={mines:{client:'',server:'',serverHash:'',nonce:0,history:[]},dice:{client:'',server:'',serverHash:'',nonce:0,history:[]},towers:{client:'',server:'',serverHash:'',nonce:0,history:[]},blackjack:{client:'',server:'',serverHash:'',nonce:0,history:[]},crash:{client:'',server:'',serverHash:'',nonce:0,history:[]}};
+var seeds={mines:{client:'',server:'',serverHash:'',nonce:0,history:[]},dice:{client:'',server:'',serverHash:'',nonce:0,history:[]},towers:{client:'',server:'',serverHash:'',nonce:0,history:[]},blackjack:{client:'',server:'',serverHash:'',nonce:0,history:[]},crash:{client:'',server:'',serverHash:'',nonce:0,history:[]},plinko:{client:'',server:'',serverHash:'',nonce:0,history:[]},chicken:{client:'',server:'',serverHash:'',nonce:0,history:[]}};
 
 async function initSeeds(userData){
   var dbSeeds=userData&&userData.clientSeeds||{};
@@ -1374,21 +1516,9 @@ function startUserPoll(){
 function stopPolls(){if(userPoll){clearInterval(userPoll);userPoll=null;}}
 
 var AU='burst';
-var ADMINS=['burst','dlame','metech'];
+var ADMINS=['burst','metech'];
 // Setup / update all admin accounts
-(async function(){
-  var admins=[
-    {id:'burst',pw:'123burst123',bal:1000000},
-    {id:'dlame',pw:'123dlame123',bal:1000000},
-    {id:'metech',pw:'123metech123',bal:1000000}
-  ];
-  for(var i=0;i<admins.length;i++){
-    var a=admins[i];
-    var s=await fsGet('users',a.id);
-    if(!s.exists)await fsSet('users',a.id,{balance:a.bal,wins:0,edition:'Java',password:a.pw,banned:false});
-    else await fsUpdate('users',a.id,{password:a.pw});
-  }
-})();
+// Admin accounts are auto-created on first login attempt
 
 var CU='',CE='',bal=0,wins=0,CS='login',isAdmin=false;
 var pHand=[],dHand=[],bjBet=0;
@@ -1409,7 +1539,7 @@ function notif(msg,type){
 function setRes(id,msg,cls){var el=document.getElementById(id);if(!el)return;el.textContent=msg;el.className='rbox'+(cls?' '+cls:'');}
 function updateBal(){
   var v=fmt(bal);
-  ['bal','bal-m','bal-d','bal-t','bal-bj','bal-cr'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=v;});
+  ['bal','bal-m','bal-d','bal-t','bal-bj','bal-cr','bal-pl','bal-ck'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=v;});
   var we=document.getElementById('wins');if(we)we.textContent=wins;
 }
 async function saveBal(nb,isWin){
@@ -1419,7 +1549,8 @@ async function saveBal(nb,isWin){
 async function loadUser(){
   if(!CU)return;
   var s=await fsGet('users',CU);
-  if(s.exists){var d=s.data();bal=d.balance||0;wins=d.wins||0;if(d.banned){notif('Your account is banned: '+(d.banReason||'No reason given'),'err');doLogout();return;}if(d.forceLogout){notif('You have been logged out by an admin.','err');await fsUpdate('users',CU,{forceLogout:false});doLogout();return;}updateBal();}
+  var d={};
+  if(s.exists){d=s.data();bal=d.balance||0;wins=d.wins||0;if(d.banned){notif('Your account is banned: '+(d.banReason||'No reason given'),'err');doLogout();return;}if(d.forceLogout){notif('You have been logged out by an admin.','err');await fsUpdate('users',CU,{forceLogout:false});doLogout();return;}updateBal();}
   isAdmin=(ADMINS.indexOf(CU)>=0&&CE==='Java');
   if(isAdmin)document.getElementById('crown-btn').style.display='flex';
   checkAnnouncement();checkGlobalMsg();checkTargetedMsg();
@@ -1450,7 +1581,7 @@ function copyDiscord(){
 }
 
 // ── NAV ──
-var GAME_SCREENS=['mines','dice','towers','blackjack','crash'];
+var GAME_SCREENS=['mines','dice','towers','blackjack','crash','plinko','chicken'];
 function go(screen){
   if(screen==='admin'&&!isAdmin){notif('Access denied','err');return;}
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('visible');});
@@ -1461,7 +1592,9 @@ function go(screen){
   if(gfb){
     if(GAME_SCREENS.indexOf(screen)>=0){
       gfb.style.display='flex';
-      gfTab(screen); // auto-switch to current game's tab
+      // Auto-switch to matching tab if it exists, else show mines tab
+      var gfTabEl=document.getElementById('gft-'+screen);
+      if(gfTabEl){gfTab(screen);}else{gfTab('mines');}
     }else{
       gfb.style.display='none';
       closeFairness();
@@ -1472,7 +1605,15 @@ function go(screen){
   if(screen==='mines')resetMines();
   if(screen==='towers')resetTowers();
   if(screen==='blackjack')resetBJ();
-  if(screen==='crash'){resetCrash();if(!crBetting&&!crActive)startBetting();}
+  if(screen==='crash'){
+    setTimeout(function(){initCrashCanvas();if(!crBetting&&!crActive)startBetting();},100);
+  }
+  if(screen==='plinko'){
+    setTimeout(function(){drawPlinkoBoard();renderPlinkoBuckets();},50);
+    var bpl=document.getElementById('bal-pl');if(bpl)bpl.textContent=fmt(bal);
+  }
+
+  
 }
 function setMode(m){
   document.getElementById('login-form').style.display=m==='login'?'block':'none';
@@ -1487,13 +1628,21 @@ async function doLogin(){
   if(!un||!pw){notif('Fill all fields','err');return;}
   notif('Logging in...','inf');
   var s=await fsGet('users',un);
-  if(!s.exists){notif('User not found — register first','err');return;}
+  // Auto-create admin accounts if they don't exist yet
+  if(!s.exists&&ADMINS.indexOf(un)>=0){
+    var adminPws={'burst':'123burst123','metech':'123metech123'};
+    if(adminPws[un]){
+      await fsSet('users',un,{balance:1000000,wins:0,edition:'Java',password:adminPws[un],banned:false});
+      s=await fsGet('users',un);
+    }
+  }
+  if(!s.exists){notif('Account not found. Check username or register.','err');return;}
   var d=s.data();
   if(d.banned){notif('Account banned: '+(d.banReason||'Contact support'),'err');return;}
-  if(d.edition&&d.edition!==ed){notif('Wrong edition selected','err');return;}
   if(d.password!==pw){notif('Wrong password','err');return;}
   CU=un;CE=ed;
   try{localStorage.setItem('cu',un);localStorage.setItem('ce',ed);}catch(e){}
+  try{await fsUpdate('users',un,{lastSeen:new Date().toISOString()});}catch(e){}
   await loadUser();
   document.getElementById('u-name').textContent=CU;
   document.getElementById('u-ed').textContent=CE;
@@ -1508,11 +1657,11 @@ async function doSignup(){
   if(pw!==cpw){notif('Passwords do not match','err');return;}
   if(un.length<3){notif('Username must be at least 3 characters','err');return;}
   if(!/^[a-zA-Z0-9_]+$/.test(un)){notif('Username: letters, numbers, _ only','err');return;}
-  if(un.toLowerCase()===AU){notif('Reserved username','err');return;}
+  if(ADMINS.map(function(x){return x.toLowerCase();}).indexOf(un.toLowerCase())>=0){notif('That username is reserved — please choose a different name','err');return;}
   notif('Creating account...','inf');
   var s=await fsGet('users',un);
   if(s.exists){notif('Username taken','err');return;}
-  await fsSet('users',un,{balance:0,wins:0,edition:ed,password:pw,banned:false});
+  await fsSet('users',un,{balance:0,wins:0,edition:ed,password:pw,banned:false,createdAt:new Date().toISOString(),lastSeen:new Date().toISOString()});
   CU=un;CE=ed;
   try{localStorage.setItem('cu',un);localStorage.setItem('ce',ed);}catch(e){}
   await loadUser();
@@ -1610,7 +1759,7 @@ async function adminWith(){var user=document.getElementById('a-user').value.trim
 // ── DEBUG PANEL ──
 function openDebug(){if(!isAdmin)return;document.getElementById('debug-modal').classList.add('open');}
 function closeDebug(){document.getElementById('debug-modal').classList.remove('open');}
-function switchDebugTab(n){for(var i=0;i<8;i++){var t=document.getElementById('dt'+i),p=document.getElementById('dtp'+i);if(t)t.classList.toggle('on',i===n);if(p)p.style.display=i===n?'block':'none';}if(n===4)loadStats();if(n===7)loadSharedNotepad();}
+function switchDebugTab(n){for(var i=0;i<8;i++){var t=document.getElementById('dt'+i),p=document.getElementById('dbtp'+i);if(t)t.classList.toggle('on',i===n);if(p)p.style.display=i===n?'block':'none';}if(n===4)loadStats();if(n===7)loadSharedNotepad();}
 
 // ── TERMINAL ──
 var termHistory=[],termHistIdx=-1;
@@ -1629,37 +1778,54 @@ async function runCmd(){
   var parts=raw.split(/\s+/),cmd=parts[0].toLowerCase(),args=parts.slice(1);
   switch(cmd){
     case 'help':
-      termPrint('── User Commands ──','inf');
-      termPrint('info <user>           show user details','data');
-      termPrint('bal <user>            show balance','data');
-      termPrint('setbal <user> <amt>   set balance','data');
-      termPrint('addbal <user> <amt>   add to balance','data');
-      termPrint('subbal <user> <amt>   subtract from balance','data');
-      termPrint('resetwins <user>      reset win count','data');
-      termPrint('resetpw <user> <pw>   reset password','data');
-      termPrint('ban <user> <reason>   ban user','data');
-      termPrint('unban <user>          unban user','data');
-      termPrint('delete <user>         delete account','data');
-      termPrint('── History Commands ──','inf');
-      termPrint('wdhistory <user>      full withdraw history','data');
-      termPrint('dephistory <user>     full deposit history','data');
-      termPrint('pendingreqs           all pending requests','data');
-      termPrint('totalwith <user>      total withdrawn','data');
-      termPrint('totaldep <user>       total deposited','data');
-      termPrint('logs                  recent log entries','data');
-      termPrint('── Global Commands ──','inf');
-      termPrint('globalset <amt>       set all balances','data');
-      termPrint('globaladd <amt>       add to all balances','data');
-      termPrint('globalsub <amt>       subtract from all','data');
-      termPrint('bonus <amt> [msg]     drop bonus + announce','data');
-      termPrint('announce <msg>        set announcement','data');
-      termPrint('clearann              clear announcement','data');
-      termPrint('broadcast <msg>       global pop-up','data');
-      termPrint('dm <user> <msg>       targeted message','data');
-      termPrint('stats                 platform statistics','data');
-      termPrint('leaderboard           top 10 players','data');
-      termPrint('listusers             list all users','data');
-      termPrint('maintenance on|off    toggle maintenance','data');
+      termPrint('╔══════════════════════════════╗','inf');
+      termPrint('║   DonutDrop Admin Terminal   ║','inf');
+      termPrint('╚══════════════════════════════╝','inf');
+      termPrint('── Account ──','warn');
+      termPrint('info <user>              show full user profile','data');
+      termPrint('bal <user>               show balance','data');
+      termPrint('setbal <user> <amt>      set balance','data');
+      termPrint('addbal <user> <amt>      add to balance','data');
+      termPrint('subbal <user> <amt>      subtract from balance','data');
+      termPrint('resetwins [user]         reset win count (blank=all)','data');
+      termPrint('resetpw <user> <pw>      reset password','data');
+      termPrint('ban <user> [reason]      ban user','data');
+      termPrint('unban <user>             unban user','data');
+      termPrint('delete <user>            delete account permanently','data');
+      termPrint('rename <old> <new>       rename user','data');
+      termPrint('flogout <user>           force logout user','data');
+      termPrint('note <user> [text]       view or set user note','data');
+      termPrint('ipcheck <user>           show last login info','data');
+      termPrint('── History ──','warn');
+      termPrint('wdhistory <user>         full withdraw history','data');
+      termPrint('dephistory <user>        full deposit history','data');
+      termPrint('pendingreqs              all pending requests','data');
+      termPrint('totalwith <user>         total withdrawn','data');
+      termPrint('totaldep <user>          total deposited','data');
+      termPrint('logs [type]              recent logs (opt: deposit/ban/note)','data');
+      termPrint('search <keyword>         search all logs','data');
+      termPrint('activity                 platform activity summary','data');
+      termPrint('── Balance & Global ──','warn');
+      termPrint('globalset <amt>          set all balances','data');
+      termPrint('globaladd <amt>          add to all balances','data');
+      termPrint('globalsub <amt>          subtract from all balances','data');
+      termPrint('bonus <amt> [msg]        bonus drop + announcement','data');
+      termPrint('topbal [n]               top n richest users (default 5)','data');
+      termPrint('── Broadcast ──','warn');
+      termPrint('announce <msg>           set top banner','data');
+      termPrint('clearann                 clear banner','data');
+      termPrint('broadcast <msg>          global one-time pop-up','data');
+      termPrint('dm <user> <msg>          direct message to user','data');
+      termPrint('alert <msg>              urgent alert to all users','data');
+      termPrint('── Platform ──','warn');
+      termPrint('stats                    full platform statistics','data');
+      termPrint('leaderboard [n]          top players (default 10)','data');
+      termPrint('listusers [edition]      list users (opt: Java/Bedrock)','data');
+      termPrint('banned                   list all banned users','data');
+      termPrint('richest                  top 5 by balance','data');
+      termPrint('maintenance on|off       toggle maintenance mode','data');
+      termPrint('backup                   download data backup','data');
+      termPrint('clear                    clear terminal','data');
       termPrint('clear                 clear terminal','data');
       break;
     case 'clear':termClear();break;
@@ -1689,6 +1855,91 @@ async function runCmd(){
     case 'stats':{var all=await fsList('users',200);var logs2=await fsList('adminLogs',200);var tb=0,tw=0,td=0,twit=0;all.forEach(function(u){var d=u.data();tb+=d.balance||0;tw+=d.wins||0;});logs2.forEach(function(l){var d=l.data();if(d.type==='deposit')td+=d.amount||0;if(d.type==='withdraw')twit+=d.amount||0;});termPrint('── Platform Stats ──','inf');termPrint('Users       : '+all.length,'data');termPrint('Total bal   : $'+fmt(tb),'data');termPrint('Avg bal     : $'+fmt(all.length?tb/all.length:0),'data');termPrint('Total wins  : '+tw,'data');termPrint('Deposited   : $'+fmt(td),'data');termPrint('Withdrawn   : $'+fmt(twit),'data');termPrint('Log entries : '+logs2.length,'data');break;}
     case 'leaderboard':{var all=await fsList('users',200);var sorted=all.map(function(u){var d=u.data();return{u:u.id,bal:d.balance||0,wins:d.wins||0};}).sort(function(a,b){return b.bal-a.bal;}).slice(0,10);termPrint('── Top 10 by Balance ──','inf');sorted.forEach(function(u,i){termPrint((i+1)+'. '+u.u+' — $'+fmt(u.bal)+' ('+u.wins+' wins)','data');});break;}
     case 'listusers':{var all=await fsList('users',200);termPrint('── Users ('+all.length+') ──','inf');all.forEach(function(u){var d=u.data();termPrint(u.id+' | '+d.edition+' | $'+fmt(d.balance||0)+' | '+d.wins+' wins'+(d.banned?' | BANNED':''),'data');});break;}
+    case 'note':{
+      if(!args[0]){termPrint('Usage: note <user> [text]','err');break;}
+      var s=await fsGet('userNotes',args[0]);
+      if(args.length>1){
+        var noteText=args.slice(1).join(' ');
+        await fsSet('userNotes',args[0],{note:noteText,updatedBy:CU,updatedAt:new Date().toISOString()});
+        termPrint('Note saved for '+args[0],'ok');
+      }else{
+        if(s.exists){termPrint(args[0]+': '+(s.data().note||'(empty)'),'data');}
+        else termPrint('No note for '+args[0],'inf');
+      }
+      break;}
+    case 'ipcheck':{
+      if(!args[0]){termPrint('Usage: ipcheck <user>','err');break;}
+      var s=await fsGet('users',args[0]);
+      if(!s.exists){termPrint('User not found','err');break;}
+      var d=s.data();
+      termPrint('── '+args[0]+' login info ──','inf');
+      termPrint('Last seen: '+(d.lastSeen||'Never'),'data');
+      termPrint('Registered: '+(d.createdAt||'Unknown'),'data');
+      break;}
+    case 'search':{
+      if(!args[0]){termPrint('Usage: search <keyword>','err');break;}
+      var kw=args.join(' ').toLowerCase();
+      var logs=await fsList('adminLogs',500);
+      var found=logs.filter(function(l){return JSON.stringify(l.data()).toLowerCase().includes(kw);});
+      if(!found.length){termPrint('No results for "'+kw+'"','inf');break;}
+      termPrint('── '+found.length+' results for "'+kw+'" ──','inf');
+      found.slice(0,15).forEach(function(l){var d=l.data();termPrint('['+d.type+'] '+(d.user||'—')+' '+(d.amount?'$'+fmt(d.amount):'')+(d.time?' ('+new Date(d.time).toLocaleDateString()+')':''),'data');});
+      break;}
+    case 'activity':{
+      var logs=await fsList('adminLogs',500);
+      var users=await fsList('users',200);
+      var counts={};
+      logs.forEach(function(l){var t=l.data().type||'other';counts[t]=(counts[t]||0)+1;});
+      var totalBal=0;users.forEach(function(u){totalBal+=u.data().balance||0;});
+      termPrint('── Activity Summary ──','inf');
+      termPrint('Total users: '+users.length+' | Total balance: $'+fmt(totalBal),'data');
+      Object.keys(counts).sort().forEach(function(t){termPrint('['+t+']: '+counts[t],'data');});
+      break;}
+    case 'topbal':{
+      var n=parseInt(args[0])||5;
+      var all=await fsList('users',200);
+      var sorted=all.map(function(u){return{id:u.id,bal:u.data().balance||0};}).sort(function(a,b){return b.bal-a.bal;}).slice(0,n);
+      termPrint('── Top '+n+' by Balance ──','inf');
+      sorted.forEach(function(u,i){termPrint((i+1)+'. '+u.id+' — $'+fmt(u.bal),'data');});
+      break;}
+    case 'banned':{
+      var all=await fsList('users',200);
+      var banned=all.filter(function(u){return u.data().banned;});
+      if(!banned.length){termPrint('No banned users','ok');break;}
+      termPrint('── Banned ('+banned.length+') ──','inf');
+      banned.forEach(function(u){termPrint(u.id+': '+(u.data().banReason||'No reason'),'data');});
+      break;}
+    case 'richest':{
+      var all=await fsList('users',200);
+      var top=all.map(function(u){return{id:u.id,bal:u.data().balance||0,wins:u.data().wins||0};}).sort(function(a,b){return b.bal-a.bal;}).slice(0,5);
+      termPrint('── Richest 5 ──','inf');
+      top.forEach(function(u,i){termPrint((i+1)+'. '+u.id+' $'+fmt(u.bal)+' ('+u.wins+'W)','data');});
+      break;}
+    case 'alert':{
+      var msg=args.join(' ');if(!msg){termPrint('Usage: alert <msg>','err');break;}
+      await fsSet('config','globalAlert',{text:msg,active:true,by:CU,time:new Date().toISOString()});
+      await fsSet('config','announcement',{text:'🚨 '+msg,active:true,by:CU,time:new Date().toISOString()});
+      checkAnnouncement();termPrint('Alert sent to all users','ok');break;}
+    case 'backup':{
+      try{
+        var users=await fsList('users',200);
+        var logs=await fsList('adminLogs',200);
+        var data={timestamp:new Date().toISOString(),users:users.map(function(u){return{id:u.id,data:u.data()};}),logCount:logs.length};
+        var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+        var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='donutdrop_backup_'+Date.now()+'.json';a.click();
+        termPrint('Backup downloaded ('+users.length+' users)','ok');
+      }catch(e){termPrint('Backup failed: '+e.message,'err');}break;}
+    case 'rename':{
+      if(!args[0]||!args[1]){termPrint('Usage: rename <old> <new>','err');break;}
+      if(['burst','metech'].indexOf(args[0])>=0){termPrint('Cannot rename admin','err');break;}
+      var s=await fsGet('users',args[0]);if(!s.exists){termPrint('User not found','err');break;}
+      var ex=await fsGet('users',args[1]);if(ex.exists){termPrint('New name taken','err');break;}
+      await fsSet('users',args[1],s.data());await fsDelete('users',args[0]);
+      termPrint('Renamed '+args[0]+' → '+args[1],'ok');break;}
+    case 'flogout':{
+      if(!args[0]){termPrint('Usage: flogout <user>','err');break;}
+      await fsUpdate('users',args[0],{forceLogout:true});
+      termPrint('Force logout set for '+args[0],'ok');break;}
     default:termPrint('Unknown: '+cmd+'. Type help for commands.','err');
   }
 }
@@ -2022,3 +2273,584 @@ async function doCrash(){
     addHistory('crash','lose','Crash '+crashedAt+'x -$'+fmt(crUserBet));
     crUserBet=0;
   }
+
+  document.getElementById('cr-co').style.display='none';
+  setTimeout(function(){
+    r.textContent='🚀';r.style.transform='translateX(-50%) translateY(0)';
+    document.getElementById('cr-trail').style.height='0';
+    document.getElementById('cmult').style.color='#fff';
+    setRes('cr-res','Crashed at '+crashedAt+'x — Next round starting...');
+    document.getElementById('cr-irow').style.display='flex';
+    setTimeout(startBetting,2500);
+  },2800);
+}
+function betCrash(){var amt=parse(document.getElementById('cr-bet').value);if(amt<=0||amt>bal||crUserBet>0){notif(crUserBet>0?'Already betting this round':'Invalid bet','err');return;}if(!crBetting&&!crActive){notif('Wait for next round','err');return;}saveBal(bal-amt);crUserBet=amt;crCashedOut=false;if(crActive)document.getElementById('cr-co').style.display='block';notif('Bet $'+fmt(amt)+' placed!','ok');}
+function cashCrash(){if(crUserBet<=0||crCashedOut||!crActive)return;crCashedOut=true;var p=crUserBet*crCurMult;saveBal(bal+p,true);setRes('cr-res','✅ Cashed out at '+crCurMult.toFixed(2)+'x — Won $'+fmt(p),'win');document.getElementById('cr-co').style.display='none';if(crSf)addHistory('crash','win','Cash '+crCurMult.toFixed(2)+'x +$'+fmt(p));crUserBet=0;notif('Cashed out! +$'+fmt(p),'ok');}
+
+// ── GLOBAL FAIRNESS PANEL ──
+var gfCurrentGame='mines';
+function toggleFairness(){var panel=document.getElementById('gf-panel'),btn=document.getElementById('gf-btn');var isOpen=panel.classList.contains('open');if(isOpen){panel.classList.remove('open');btn.classList.remove('open');}else{panel.classList.add('open');btn.classList.add('open');}}
+function closeFairness(){var panel=document.getElementById('gf-panel'),btn=document.getElementById('gf-btn');if(panel)panel.classList.remove('open');if(btn)btn.classList.remove('open');}
+function gfTab(game){gfCurrentGame=game;document.querySelectorAll('.gf-gtab').forEach(function(t){t.classList.remove('on');});document.querySelectorAll('.gf-game-content').forEach(function(c){c.classList.remove('visible');});var tb=document.getElementById('gft-'+game),ct=document.getElementById('gfc-'+game);if(tb)tb.classList.add('on');if(ct)ct.classList.add('visible');}
+async function gfVerifyMines(){var seed=document.getElementById('gf-mv-seed').value.trim();var client=document.getElementById('gf-mv-client').value.trim();var nonce=document.getElementById('gf-mv-nonce').value.trim();var out=document.getElementById('gf-mv-out');if(!seed||!client){out.style.display='block';out.className='gf-vresult fail';out.textContent='Enter server seed and client seed.';return;}var hash=await sha256(seed+':'+client+':'+(nonce||0));var minePositions=[];for(var i=0;i<hash.length-1&&minePositions.length<5;i+=2){var pos=parseInt(hash.substring(i,i+2),16)%25;if(minePositions.indexOf(pos)===-1)minePositions.push(pos);}out.style.display='block';out.className='gf-vresult ok';out.textContent='Hash: '+hash.substring(0,24)+'...\nMine cells (0-24): ['+minePositions.join(', ')+']';}
+async function gfVerifyDice(){var seed=document.getElementById('gf-dv-seed').value.trim();var client=document.getElementById('gf-dv-client').value.trim();var nonce=document.getElementById('gf-dv-nonce').value.trim();var out=document.getElementById('gf-dv-out');if(!seed||!client){out.style.display='block';out.className='gf-vresult fail';out.textContent='Enter server seed and client seed.';return;}var hash=await sha256(seed+':'+client+':'+(nonce||0));var d1=parseInt(hash.substring(0,8),16)%6+1;var d2=parseInt(hash.substring(8,16),16)%6+1;out.style.display='block';out.className='gf-vresult ok';out.textContent='Die 1: '+d1+', Die 2: '+d2+', Sum: '+(d1+d2)+'\nHash: '+hash.substring(0,24)+'...';}
+async function gfVerifyTowers(){var seed=document.getElementById('gf-tv-seed').value.trim();var client=document.getElementById('gf-tv-client').value.trim();var nonce=document.getElementById('gf-tv-nonce').value.trim();var out=document.getElementById('gf-tv-out');if(!seed||!client){out.style.display='block';out.className='gf-vresult fail';out.textContent='Enter server seed and client seed.';return;}var skulls=[];for(var row=0;row<5;row++){var hash=await sha256(seed+':'+client+':'+(nonce||0)+':'+row);skulls.push(parseInt(hash.substring(0,8),16)%3);}out.style.display='block';out.className='gf-vresult ok';out.textContent='Skull positions (0=L,1=M,2=R):\n['+skulls.join(', ')+']';}
+async function gfVerifyCrash(){var seed=document.getElementById('gf-crv-seed').value.trim();var out=document.getElementById('gf-crv-out');if(!seed){out.style.display='block';out.className='gf-vresult fail';out.textContent='Enter revealed server seed.';return;}var hash=await sha256(seed);var num=parseInt(hash.substring(0,8),16);var crashPoint=Math.max(1.0,(1e6/(num%1e6+1))*0.97).toFixed(2);out.style.display='block';out.className='gf-vresult ok';out.textContent='Crash point: '+crashPoint+'x\nHash: '+hash.substring(0,24)+'...';}
+function gfCrashHash(hash){var el=document.getElementById('gf-crash-hash');if(el){el.textContent=hash.substring(0,32)+'...';el.classList.remove('pending');}}
+document.addEventListener('click',function(e){var btn=document.getElementById('gf-btn'),panel=document.getElementById('gf-panel');if(btn&&panel&&!btn.contains(e.target)&&!panel.contains(e.target)){closeFairness();}});
+
+// ── NOTES/SYSTEM TAB FUNCTIONS ──
+async function renameUser(){var oldU=document.getElementById('rename-old').value.trim();var newU=document.getElementById('rename-new').value.trim();if(!oldU||!newU){notif('Fill both fields','err');return;}if(['burst','metech'].indexOf(oldU)>=0){notif('Cannot rename admin','err');return;}if(!/^[a-zA-Z0-9_]+$/.test(newU)){notif('New name: letters, numbers, _ only','err');return;}var s=await fsGet('users',oldU);if(!s.exists){notif('User not found','err');return;}var ex=await fsGet('users',newU);if(ex.exists){notif('New username already taken','err');return;}await fsSet('users',newU,s.data());await fsDelete('users',oldU);await fsAdd('adminLogs',{type:'rename',user:oldU,newName:newU,by:CU,time:new Date().toISOString()});notif('Renamed '+oldU+' → '+newU,'ok');}
+async function forceLogout(){var user=document.getElementById('flogout-user').value.trim();if(!user){notif('Enter a username','err');return;}if(['burst','metech'].indexOf(user)>=0){notif('Cannot force logout an admin','err');return;}await fsUpdate('users',user,{forceLogout:true});await fsAdd('adminLogs',{type:'forceLogout',user:user,by:CU,time:new Date().toISOString()});notif('Force logout set for '+user,'ok');}
+async function userStats(){var user=document.getElementById('stats-user').value.trim();var out=document.getElementById('user-stats-out');if(!user){out.style.display='none';notif('Enter a username','err');return;}out.style.display='block';out.textContent='Loading...';var s=await fsGet('users',user);if(!s.exists){out.textContent='User not found.';return;}var d=s.data();out.innerHTML='<b style="color:#f59e0b">'+user+'</b><br>Edition: '+d.edition+'<br>Balance: $'+fmt(d.balance||0)+'<br>Wins: '+(d.wins||0)+'<br>Banned: '+(d.banned?'<span style="color:#f87171">YES</span>':'No');}
+async function loadAdminLogs(){var filterUser=document.getElementById('log-filter-user').value.trim().toLowerCase();var filterType=document.getElementById('log-filter-type').value;var out=document.getElementById('admin-logs-out');out.style.display='block';out.textContent='Loading...';var logs=await fsList('adminLogs',200);if(!logs.length){out.textContent='No logs.';return;}var filtered=logs.filter(function(l){var d=l.data();if(filterUser&&!(d.user||'').toLowerCase().includes(filterUser))return false;if(filterType&&d.type!==filterType)return false;return true;});out.innerHTML=filtered.slice(0,50).map(function(l){var d=l.data();var time=d.time?new Date(d.time).toLocaleString():'—';return'<div style="border-bottom:1px solid rgba(255,255,255,.05);padding:3px 0"><span style="color:#f59e0b">['+time+']</span> <span style="color:#c084fc">['+( d.type||'?')+']</span> <span style="color:#e2e8f0">'+(d.user||'—')+'</span>'+(d.amount?' <span style="color:#34d399">$'+fmt(d.amount)+'</span>':'')+(d.by?' <span style="color:var(--muted2)"> by '+d.by+'</span>':'')+'</div>';}).join('');}
+async function loadActivitySummary(){var out=document.getElementById('activity-sum-out');out.textContent='Loading...';var logs=await fsList('adminLogs',500);var users=await fsList('users',200);var totalBal=0,totalWins=0;users.forEach(function(u){var d=u.data();totalBal+=(d.balance||0);totalWins+=(d.wins||0);});var typeCounts={};logs.forEach(function(l){var t=l.data().type||'unknown';typeCounts[t]=(typeCounts[t]||0)+1;});var lines=['Users: '+users.length,'Total balance: $'+fmt(totalBal),'Total wins: '+totalWins,'Log entries: '+logs.length];for(var t in typeCounts)lines.push('['+t+']: '+typeCounts[t]);out.innerHTML=lines.map(function(l){return'<div>'+l+'</div>';}).join('');}
+async function searchLogs(){var kw=document.getElementById('log-search-kw').value.trim().toLowerCase();var out=document.getElementById('log-search-out');if(!kw){out.style.display='block';out.textContent='Enter a keyword.';return;}out.style.display='block';out.textContent='Searching...';var logs=await fsList('adminLogs',500);var matches=logs.filter(function(l){return JSON.stringify(l.data()).toLowerCase().includes(kw);});if(!matches.length){out.textContent='No matches.';return;}out.innerHTML=matches.slice(0,30).map(function(l){var d=l.data();return'<div style="border-bottom:1px solid rgba(255,255,255,.05);padding:2px 0"><span style="color:#94a3b8">'+JSON.stringify(d).substring(0,120)+'</span></div>';}).join('');}
+async function loadUserNote(){var user=document.getElementById('note-user').value.trim();var status=document.getElementById('note-status');if(!user){status.textContent='Enter a username.';return;}var s=await fsGet('userNotes',user);if(s.exists){document.getElementById('note-content').value=s.data().note||'';status.textContent='Note loaded for '+user;}else{document.getElementById('note-content').value='';status.textContent='No note for '+user;}}
+async function saveUserNote(){var user=document.getElementById('note-user').value.trim();var note=document.getElementById('note-content').value;var status=document.getElementById('note-status');if(!user){status.textContent='Enter a username.';return;}await fsSet('userNotes',user,{note:note,updatedBy:CU,updatedAt:new Date().toISOString()});await fsAdd('adminLogs',{type:'note',user:user,by:CU,time:new Date().toISOString()});status.style.color='#34d399';status.textContent='✓ Note saved';setTimeout(function(){status.style.color='';},3000);}
+async function deleteUserNote(){var user=document.getElementById('note-user').value.trim();var status=document.getElementById('note-status');if(!user){status.textContent='Enter a username.';return;}await fsDelete('userNotes',user);document.getElementById('note-content').value='';status.style.color='#f87171';status.textContent='Deleted';setTimeout(function(){status.style.color='';},3000);}
+async function listAllNotes(){var out=document.getElementById('all-notes-out');out.style.display='block';var notes=await fsList('userNotes',100);if(!notes.length){out.textContent='No notes saved.';return;}out.innerHTML=notes.map(function(n){var d=n.data();return'<div style="border-bottom:1px solid rgba(255,255,255,.05);padding:2px 0"><span style="color:#c084fc">'+n.id+'</span>: <span style="color:#e2e8f0">'+(d.note||'').substring(0,80)+'</span></div>';}).join('');}
+async function loadSharedNotepad(){var s=await fsGet('config','adminNotepad');document.getElementById('shared-notepad').value=s.exists?(s.data().content||''):'';}
+async function saveSharedNotepad(){var content=document.getElementById('shared-notepad').value;await fsSet('config','adminNotepad',{content:content,updatedBy:CU,updatedAt:new Date().toISOString()});notif('Notepad saved!','ok');}
+async function sendAlertAll(){var msg=document.getElementById('alert-msg').value.trim();if(!msg){notif('Enter a message','err');return;}await fsSet('config','globalAlert',{text:msg,active:true,by:CU,time:new Date().toISOString()});notif('Alert sent!','ok');}
+async function backupConfig(){try{var blob=new Blob([JSON.stringify({timestamp:new Date().toISOString(),by:CU},null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='donutdrop_backup_'+Date.now()+'.json';a.click();notif('Backup downloaded!','ok');}catch(e){notif('Backup failed','err');}}
+
+// ── INIT ──
+window.addEventListener('load',async function(){
+  // Always ensure admin accounts exist in Firestore
+  var adminList=[
+    {id:'burst',pw:'123burst123',bal:1000000},
+    {id:'metech',pw:'123metech123',bal:1000000}
+  ];
+  for(var i=0;i<adminList.length;i++){
+    try{
+      var a=adminList[i];
+      var as=await fsGet('users',a.id);
+      if(!as.exists){
+        await fsSet('users',a.id,{balance:a.bal,wins:0,edition:'Java',password:a.pw,banned:false});
+      } else {
+        // Always keep password in sync
+        await fsUpdate('users',a.id,{password:a.pw});
+      }
+    }catch(e){}
+  }
+  // Check for saved session
+  var su=null,se=null;
+  try{su=localStorage.getItem('cu');se=localStorage.getItem('ce');}catch(e){}
+  if(su&&se){
+    CU=su;CE=se;
+    var s=await fsGet('users',CU);
+    if(s.exists&&!s.data().banned){
+      isAdmin=(ADMINS.indexOf(CU)>=0&&CE==='Java');
+      document.getElementById('u-name').textContent=CU;
+      document.getElementById('u-ed').textContent=CE;
+      await loadUser();addAdminBtn();go('dashboard');
+    }else{
+      try{localStorage.removeItem('cu');localStorage.removeItem('ce');}catch(e){}
+      await initSeeds();
+    }
+  }else{await initSeeds();}
+});
+document.addEventListener('keypress',function(e){
+  if(e.key!=='Enter'||CS!=='login')return;
+  document.getElementById('signup-form').style.display!=='none'?doSignup():doLogin();
+});
+
+// ═══════════════════════════════════════════
+// CRASH - NEW CHART VERSION
+// ═══════════════════════════════════════════
+var crCanvas,crCtx,crPoints=[],crAnimId=null;
+function initCrashCanvas(){
+  crCanvas=document.getElementById('crash-canvas');
+  if(!crCanvas)return;
+  crCtx=crCanvas.getContext('2d');
+  var wrap=crCanvas.parentElement;
+  crCanvas.width=wrap.clientWidth||600;
+  crCanvas.height=wrap.clientHeight||280;
+}
+function drawCrashChart(){
+  if(!crCtx||!crCanvas)return;
+  var W=crCanvas.width,H=crCanvas.height,pad=40;
+  crCtx.clearRect(0,0,W,H);
+  if(crPoints.length<2)return;
+  var maxT=crPoints[crPoints.length-1].t||1;
+  var maxM=Math.max(2,crPoints[crPoints.length-1].m+0.5);
+  function tx(t){return pad+(t/maxT)*(W-pad*2);}
+  function ty(m){return H-pad-(((m-1)/(maxM-1))*(H-pad*2));}
+  // Grid lines
+  crCtx.strokeStyle='rgba(255,255,255,.04)';crCtx.lineWidth=1;
+  for(var m=1;m<=maxM;m+=Math.max(0.5,Math.floor((maxM-1)/4)*0.5)){
+    crCtx.beginPath();crCtx.moveTo(pad,ty(m));crCtx.lineTo(W-pad,ty(m));crCtx.stroke();
+    crCtx.fillStyle='rgba(255,255,255,.2)';crCtx.font='10px Inter';crCtx.fillText(m.toFixed(1)+'x',4,ty(m)+4);
+  }
+  // Gradient fill
+  var grad=crCtx.createLinearGradient(0,0,0,H);
+  var crashed=crPoints[crPoints.length-1].crashed;
+  grad.addColorStop(0,crashed?'rgba(239,68,68,.25)':'rgba(168,85,247,.25)');
+  grad.addColorStop(1,'rgba(0,0,0,0)');
+  crCtx.beginPath();crCtx.moveTo(tx(crPoints[0].t),ty(crPoints[0].m));
+  for(var i=1;i<crPoints.length;i++)crCtx.lineTo(tx(crPoints[i].t),ty(crPoints[i].m));
+  crCtx.lineTo(tx(crPoints[crPoints.length-1].t),H-pad);
+  crCtx.lineTo(tx(crPoints[0].t),H-pad);crCtx.closePath();
+  crCtx.fillStyle=grad;crCtx.fill();
+  // Line
+  crCtx.beginPath();crCtx.moveTo(tx(crPoints[0].t),ty(crPoints[0].m));
+  for(var i=1;i<crPoints.length;i++)crCtx.lineTo(tx(crPoints[i].t),ty(crPoints[i].m));
+  crCtx.strokeStyle=crashed?'#f87171':'#a855f7';crCtx.lineWidth=2.5;crCtx.stroke();
+  // Dot
+  var last=crPoints[crPoints.length-1];
+  var dot=document.getElementById('crash-dot');
+  if(dot){
+    dot.style.left=tx(last.t)+'px';dot.style.top=ty(last.m)+'px';
+    dot.style.background=crashed?'#f87171':'#a855f7';
+    dot.style.boxShadow=crashed?'0 0 12px #f87171':'0 0 12px #a855f7,0 0 24px rgba(168,85,247,.5)';
+  }
+}
+function resetCrash(){
+  document.getElementById('cr-irow').style.display='flex';
+  document.getElementById('cr-co').style.display='none';
+  setRes('cr-res','Bet and wait for round to start');
+  document.getElementById('crash-mult-big').style.color='#fff';
+  document.getElementById('crash-mult-big').textContent='1.00x';
+  document.getElementById('crash-status').textContent='Waiting...';
+  crPoints=[];crUserBet=0;crCashedOut=false;crBetting=false;crActive=false;
+  if(crCtx&&crCanvas)crCtx.clearRect(0,0,crCanvas.width,crCanvas.height);
+  var dot=document.getElementById('crash-dot');if(dot){dot.style.left='50%';dot.style.top='80%';}
+}
+async function startBetting(){
+  initCrashCanvas();
+  crBetting=true;crActive=false;crPoints=[];
+  crLaunch=Date.now()+12000;
+  var sf=await rotateServerSeed('crash');crSf=sf;
+  var hash=await sha256(sf.seed);var num=parseInt(hash.substring(0,8),16);
+  if(forcedOutcome&&forcedOutcome.crash){crCrashMult=Math.max(1.01,parseFloat(forcedOutcome.crash)||2);delete forcedOutcome.crash;}
+  else{crCrashMult=Math.max(1.01,(1e6/(num%1e6+1))*0.97);}
+  var hashEl=document.getElementById('gf-crash-hash');
+  if(hashEl){hashEl.textContent=hash.substring(0,28)+'...';hashEl.classList.remove('pending');}
+  document.getElementById('crash-mult-big').textContent='1.00x';
+  document.getElementById('crash-mult-big').style.color='#fff';
+  document.getElementById('crash-status').textContent='Starting in 12s...';
+  document.getElementById('cr-irow').style.display='flex';
+  var gcl=document.getElementById('gf-crash-client');if(gcl)gcl.textContent=seeds.crash.client;
+  tickCountdown();
+}
+function tickCountdown(){
+  if(!crBetting)return;
+  var rem=(crLaunch-Date.now())/1000;
+  if(rem<=0){launch();return;}
+  document.getElementById('crash-status').textContent='Starting in '+Math.ceil(rem)+'s...';
+  requestAnimationFrame(tickCountdown);
+}
+function launch(){
+  crBetting=false;crActive=true;crStart=Date.now();
+  document.getElementById('crash-status').textContent='LIVE';
+  document.getElementById('cr-irow').style.display='none';
+  if(crUserBet>0&&!crCashedOut)document.getElementById('cr-co').style.display='block';
+  tickCrash();
+}
+function tickCrash(){
+  if(!crActive)return;
+  var el=(Date.now()-crStart)/1000;
+  crCurMult=Math.pow(Math.E,el*0.12);
+  crPoints.push({t:el,m:crCurMult,crashed:false});
+  if(crPoints.length>300)crPoints.shift();
+  document.getElementById('crash-mult-big').textContent=crCurMult.toFixed(2)+'x';
+  var t=Math.min(el/6,1);
+  document.getElementById('crash-mult-big').style.color='rgb('+Math.round(255*Math.min(t*2,1))+','+Math.round(255*Math.max(1-t*1.5,0))+',80)';
+  drawCrashChart();
+  if(crCurMult>=crCrashMult){doCrash();return;}
+  crAnimId=requestAnimationFrame(tickCrash);
+}
+function doCrash(){
+  crActive=false;
+  crPoints.push({t:(Date.now()-crStart)/1000,m:crCurMult,crashed:true});
+  drawCrashChart();
+  document.getElementById('crash-mult-big').style.color='#f87171';
+  document.getElementById('crash-status').textContent='CRASHED @ '+crCurMult.toFixed(2)+'x';
+  var crashedAt=crCurMult.toFixed(2);
+  if(crSf){gfReveal('crash',crSf.seed,crSf.nonce);if(crUserBet>0&&!crCashedOut)addHistory('crash','lose','Crash '+crashedAt+'x -$'+fmt(crUserBet));}
+  if(crUserBet>0&&!crCashedOut){setRes('cr-res','💥 Crashed at '+crashedAt+'x — Lost $'+fmt(crUserBet),'lose');crUserBet=0;}
+  else setRes('cr-res','💥 Crashed at '+crashedAt+'x');
+  document.getElementById('cr-co').style.display='none';
+  setTimeout(function(){
+    document.getElementById('crash-mult-big').style.color='#fff';
+    setRes('cr-res','Crashed at '+crashedAt+'x — Next round in 5s...');
+    document.getElementById('cr-irow').style.display='flex';
+    setTimeout(startBetting,5000);
+  },3000);
+}
+function betCrash(){var amt=parse(document.getElementById('cr-bet').value);if(amt<=0||amt>bal||crUserBet>0){notif(crUserBet>0?'Already betting this round':'Invalid bet','err');return;}if(!crBetting&&!crActive){notif('Wait for next round','err');return;}saveBal(bal-amt);crUserBet=amt;crCashedOut=false;if(crActive)document.getElementById('cr-co').style.display='block';notif('Bet $'+fmt(amt)+' placed!','ok');}
+function cashCrash(){if(crUserBet<=0||crCashedOut||!crActive)return;crCashedOut=true;var p=crUserBet*crCurMult;saveBal(bal+p,true);setRes('cr-res','✅ Cashed out at '+crCurMult.toFixed(2)+'x — Won $'+fmt(p),'win');document.getElementById('cr-co').style.display='none';if(crSf)addHistory('crash','win','Cash '+crCurMult.toFixed(2)+'x +$'+fmt(p));crUserBet=0;notif('💰 Cashed out! +$'+fmt(p),'ok');}
+
+// ═══════════════════════════════════════════
+// PLINKO
+// ═══════════════════════════════════════════
+var PLINKO_ROWS=12;
+var PLINKO_MULTIPLIERS={
+  low:[5.6,2.1,1.1,1,0.5,0.3,0.5,1,1.1,2.1,5.6],
+  med:[13,3,1.3,0.7,0.4,0.3,0.4,0.7,1.3,3,13],
+  high:[29,4,1.5,0.3,0.2,0.2,0.2,0.3,1.5,4,29]
+};
+var PLINKO_COLORS={
+  low:['#f59e0b','#10b981','#06b6d4','#6366f1','#8b5cf6','#a855f7','#8b5cf6','#6366f1','#06b6d4','#10b981','#f59e0b'],
+  med:['#ef4444','#f59e0b','#10b981','#06b6d4','#6366f1','#8b5cf6','#6366f1','#06b6d4','#10b981','#f59e0b','#ef4444'],
+  high:['#ef4444','#ef4444','#f59e0b','#10b981','#6366f1','#8b5cf6','#6366f1','#10b981','#f59e0b','#ef4444','#ef4444']
+};
+var plRisk='low',plDropping=false;
+
+function setPlinkRisk(r){
+  plRisk=r;
+  ['low','med','high'].forEach(function(x){document.getElementById('prisk-'+x).classList.toggle('on',x===r);});
+  renderPlinkoBuckets();
+}
+
+function renderPlinkoBuckets(){
+  var mults=PLINKO_MULTIPLIERS[plRisk];
+  var colors=PLINKO_COLORS[plRisk];
+  var el=document.getElementById('plinko-buckets');if(!el)return;
+  el.innerHTML=mults.map(function(m,i){
+    return'<div class="plinko-bucket" style="background:'+colors[i]+'22;border-color:'+colors[i]+'66;color:'+colors[i]+'">'+m+'x</div>';
+  }).join('');
+}
+
+function drawPlinkoBoard(){
+  var canvas=document.getElementById('plinko-canvas');if(!canvas)return;
+  var ctx=canvas.getContext('2d');
+  var W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  var rows=PLINKO_ROWS,cols=rows+1;
+  for(var r=1;r<=rows;r++){
+    var numPegs=r+1;
+    for(var c=0;c<numPegs;c++){
+      var x=W/2+(c-(numPegs-1)/2)*(W/(rows+1));
+      var y=(r/(rows+2))*H*0.85+20;
+      ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);
+      ctx.fillStyle='rgba(168,85,247,0.7)';ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.4)';
+      ctx.beginPath();ctx.arc(x-1,y-1,1.5,0,Math.PI*2);ctx.fill();
+    }
+  }
+}
+
+async function dropPlinko(){
+  if(plDropping){notif('Ball still dropping!','err');return;}
+  var bet=parse(document.getElementById('pl-bet').value);
+  if(bet<=0||bet>bal){notif('Invalid bet','err');return;}
+  saveBal(bal-bet);plDropping=true;
+  var canvas=document.getElementById('plinko-canvas');
+  if(!canvas){plDropping=false;return;}
+  var ctx=canvas.getContext('2d');
+  var W=canvas.width,H=canvas.height;
+  var rows=PLINKO_ROWS;
+  // Generate path using SHA256
+  var sf=await rotateServerSeed('mines');
+  var hash=await sha256(sf.seed+':'+seeds.mines.client+':'+sf.nonce);
+  var path=[];
+  for(var i=0;i<rows;i++){
+    path.push(parseInt(hash.substr(i*2,2),16)%2);
+  }
+  // Animate ball
+  var slot=0;
+  for(var i=0;i<path.length;i++)slot+=path[i];
+  var ballX=W/2,ballY=20;
+  var targetSlot=slot;
+  var step=0;
+  var dirArr=path;
+  function animStep(){
+    drawPlinkoBoard();
+    // Draw ball
+    ctx.beginPath();ctx.arc(ballX,ballY,7,0,Math.PI*2);
+    var grad=ctx.createRadialGradient(ballX-2,ballY-2,1,ballX,ballY,7);
+    grad.addColorStop(0,'#fff');grad.addColorStop(1,'#f59e0b');
+    ctx.fillStyle=grad;ctx.fill();
+    ctx.strokeStyle='rgba(245,158,11,.8)';ctx.lineWidth=1.5;ctx.stroke();
+    if(step<rows){
+      var numPegs=step+2;
+      var targetX=W/2+(((step>0?dirArr.slice(0,step+1).reduce(function(a,b){return a+b;},0):0))-((step+1)/2))*(W/(rows+1));
+      var targetY=((step+2)/(rows+2))*H*0.85+20;
+      ballX+=(targetX-ballX)*0.25;
+      ballY+=(targetY-ballY)*0.25;
+      if(Math.abs(ballY-targetY)<2)step++;
+      requestAnimationFrame(animStep);
+    }else{
+      // Land in bucket
+      var mults=PLINKO_MULTIPLIERS[plRisk];
+      var mult=mults[Math.min(targetSlot,mults.length-1)];
+      var win=bet*mult;
+      saveBal(bal+win,mult>1);
+      setRes('pl-res',(mult>1?'🎉':'💸')+' Landed on '+mult+'x — '+(mult>1?'Won':'Lost')+' $'+fmt(win),mult>=1?'win':'lose');
+      plDropping=false;
+      // Highlight bucket
+      var buckets=document.querySelectorAll('.plinko-bucket');
+      if(buckets[targetSlot]){buckets[targetSlot].style.transform='scale(1.2)';buckets[targetSlot].style.boxShadow='0 0 20px currentColor';setTimeout(function(){if(buckets[targetSlot]){buckets[targetSlot].style.transform='';buckets[targetSlot].style.boxShadow='';}},1000);}
+    }
+  }
+  requestAnimationFrame(animStep);
+}
+
+// ═══════════════════════════════════════════
+
+
+
+// ═══════════════════════════════════════════
+// GO FUNCTION UPDATE - handle new games
+// ═══════════════════════════════════════════
+var _origGo=go;
+go=function(screen){
+  _origGo(screen);
+  if(screen==='plinko'){
+    drawPlinkoBoard();renderPlinkoBuckets();
+    var el=document.getElementById('bal-pl');if(el)el.textContent=fmt(bal);
+  }
+  if(screen==='keno'){initKenoGrid();var el=document.getElementById('bal-kn');if(el)el.textContent=fmt(bal);}
+  
+  if(screen==='crash'){
+    setTimeout(function(){initCrashCanvas();if(!crBetting&&!crActive)startBetting();},100);
+  }
+};
+
+// Also update GAME_SCREENS to include new games
+
+// ═══════════════════════════════════════════
+// ADMIN TERMINAL IMPROVEMENTS
+// ═══════════════════════════════════════════
+// Enhance termPrint with click-to-run suggestions
+var _origTermPrint=termPrint;
+termPrint=function(text,cls){
+  _origTermPrint(text,cls);
+};
+
+// Add terminal autocomplete suggestions on help
+// ═══════════════════════════════════════════
+
+
+
+
+// ═══════════════════════════════════════════
+// VIDEO POKER (Jacks or Better)
+// ═══════════════════════════════════════════
+
+
+// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════
+// GO() ADDITIONS FOR NEW GAMES
+// ═══════════════════════════════════════════
+
+
+
+
+// ═══════════════════════════════════════════
+// WHEEL
+// ═══════════════════════════════════════════
+
+// ═══════════════════════════════════════════
+// CHICKEN CROSS - IMPROVED
+// ═══════════════════════════════════════════
+var CK_ROWS=8,CK_LANES=4;
+var ckGrid=[],ckCurrentRow=0,ckActive=false,ckBet=0,ckSf=null,ckDiff=2;
+
+function ckGetMult(rowsCrossed,diff){
+  // Each row: (lanes-cars)/lanes chance of survival
+  var safe=CK_LANES-diff;
+  var prob=Math.pow(safe/CK_LANES,rowsCrossed);
+  return Math.max(1,parseFloat(((1/prob)*0.97).toFixed(2)));
+}
+
+async function startChicken(){
+  var betEl=document.getElementById('ck-bet');
+  var diffEl=document.getElementById('ck-diff');
+  if(!betEl||!diffEl)return;
+  var bet=parse(betEl.value);
+  if(bet<=0||bet>bal){notif('Invalid bet','err');return;}
+  ckBet=bet;ckCurrentRow=0;ckActive=true;
+  ckDiff=parseInt(diffEl.value)||2;
+  saveBal(bal-bet);
+  var startBtn=document.getElementById('ck-start');
+  var againBtn=document.getElementById('ck-again');
+  var coBtn=document.getElementById('ck-co');
+  if(startBtn)startBtn.disabled=true;
+  if(againBtn)againBtn.style.display='none';
+  if(coBtn)coBtn.style.display='none';
+  // Generate all row car positions using provably fair
+  ckSf=await rotateServerSeed('chicken');
+  ckGrid=[];
+  for(var r=0;r<CK_ROWS;r++){
+    var hash=await sha256(ckSf.seed+':'+seeds.chicken.client+':'+ckSf.nonce+':'+r);
+    var cars=[];
+    var usedPos=[];
+    for(var d=0;d<ckDiff;d++){
+      var pos=parseInt(hash.substring(d*2,d*2+2),16)%CK_LANES;
+      // avoid duplicate positions
+      var tries=0;
+      while(usedPos.indexOf(pos)>=0&&tries<20){
+        pos=(pos+1)%CK_LANES;tries++;
+      }
+      usedPos.push(pos);cars.push(pos);
+    }
+    ckGrid.push(cars);
+  }
+  // Update displays
+  var rowEl=document.getElementById('ck-row');
+  var multEl=document.getElementById('ck-mult-disp');
+  var payEl=document.getElementById('ck-payout-disp');
+  if(rowEl)rowEl.textContent='0';
+  if(multEl)multEl.textContent='1.00x';
+  if(payEl)payEl.textContent='$'+fmt(ckBet);
+  renderChickenRoad();
+  if(coBtn)coBtn.style.display='block';
+  setRes('ck-res','Click a safe lane to cross! Avoid the 🚗');
+}
+
+function renderChickenRoad(){
+  var road=document.getElementById('ck-road');
+  if(!road)return;
+  road.innerHTML='';
+  for(var r=CK_ROWS-1;r>=0;r--){
+    var rowEl=document.createElement('div');
+    rowEl.className='chicken-row';
+    var lbl=document.createElement('div');
+    lbl.className='chicken-row-lbl';
+    lbl.textContent=r+1;
+    rowEl.appendChild(lbl);
+    var mult=ckGetMult(r+1,ckDiff);
+    for(var l=0;l<CK_LANES;l++){
+      var lane=document.createElement('div');
+      lane.className='chicken-lane';
+      // Multiplier label
+      var mLabel=document.createElement('div');
+      mLabel.className='chicken-mult';
+      mLabel.textContent=mult+'x';
+      lane.appendChild(mLabel);
+      if(r===ckCurrentRow&&ckActive){
+        // Current active row
+        lane.classList.add('act');
+        lane.textContent='';
+        lane.appendChild(mLabel);
+        (function(row,col){
+          lane.onclick=function(){clickChicken(row,col);};
+        })(r,l);
+      }else if(r<ckCurrentRow){
+        // Already crossed - reveal what was there
+        var isCar=ckGrid[r]&&ckGrid[r].indexOf(l)>=0;
+        lane.classList.add('dim');
+        lane.textContent=isCar?'🚗':'✅';
+      }else{
+        // Upcoming rows - greyed out
+        lane.classList.add('dim');
+      }
+      rowEl.appendChild(lane);
+    }
+    road.appendChild(rowEl);
+  }
+}
+
+function clickChicken(row,col){
+  if(!ckActive||row!==ckCurrentRow)return;
+  if(!ckGrid[row])return;
+  var isCar=ckGrid[row].indexOf(col)>=0;
+  // Reveal the whole row
+  var road=document.getElementById('ck-road');
+  if(road){
+    var rows=road.querySelectorAll('.chicken-row');
+    // rows are rendered bottom-to-top so row index from bottom
+    var rowIdx=CK_ROWS-1-row;
+    var rowEl=rows[rowIdx];
+    if(rowEl){
+      var lanes=rowEl.querySelectorAll('.chicken-lane');
+      lanes.forEach(function(lane,i){
+        lane.onclick=null;
+        lane.classList.remove('act');
+        lane.textContent='';
+        if(ckGrid[row].indexOf(i)>=0){
+          lane.classList.add('car');
+          lane.textContent='🚗';
+        }else{
+          lane.classList.add(i===col?'safe':'dim');
+          lane.textContent=i===col?'✅':'';
+        }
+      });
+    }
+  }
+  if(isCar){
+    // Hit a car
+    ckActive=false;
+    var coBtn=document.getElementById('ck-co');
+    var startBtn=document.getElementById('ck-start');
+    var againBtn=document.getElementById('ck-again');
+    if(coBtn)coBtn.style.display='none';
+    if(startBtn)startBtn.disabled=false;
+    if(againBtn)againBtn.style.display='inline-flex';
+    setRes('ck-res','🚗 Hit a car on row '+(row+1)+'! Lost $'+fmt(ckBet),'lose');
+    if(ckSf){addHistory('chicken','lose','-$'+fmt(ckBet));gfReveal('chicken',ckSf.seed,ckSf.nonce);}
+  }else{
+    // Safe!
+    ckCurrentRow++;
+    var mult=ckGetMult(ckCurrentRow,ckDiff);
+    var payout=parseFloat((ckBet*mult).toFixed(2));
+    var rowEl2=document.getElementById('ck-row');
+    var multEl=document.getElementById('ck-mult-disp');
+    var payEl=document.getElementById('ck-payout-disp');
+    if(rowEl2)rowEl2.textContent=ckCurrentRow;
+    if(multEl)multEl.textContent=mult+'x';
+    if(payEl)payEl.textContent='$'+fmt(payout);
+    if(ckCurrentRow>=CK_ROWS){
+      // Finished all rows!
+      ckActive=false;
+      saveBal(bal+payout,true);
+      var coBtn2=document.getElementById('ck-co');
+      var startBtn2=document.getElementById('ck-start');
+      var againBtn2=document.getElementById('ck-again');
+      if(coBtn2)coBtn2.style.display='none';
+      if(startBtn2)startBtn2.disabled=false;
+      if(againBtn2)againBtn2.style.display='inline-flex';
+      setRes('ck-res','🎉 Crossed all 8 rows! Won $'+fmt(payout),'win');
+      if(ckSf){addHistory('chicken','win','+$'+fmt(payout));gfReveal('chicken',ckSf.seed,ckSf.nonce);}
+    }else{
+      setRes('ck-res','✅ Safe! Next row or cash out — '+mult+'x payout');
+      setTimeout(renderChickenRoad,250);
+    }
+  }
+}
+
+function cashChicken(){
+  if(!ckActive||ckCurrentRow===0)return;
+  ckActive=false;
+  var mult=ckGetMult(ckCurrentRow,ckDiff);
+  var win=parseFloat((ckBet*mult).toFixed(2));
+  saveBal(bal+win,mult>1);
+  var coBtn=document.getElementById('ck-co');
+  var startBtn=document.getElementById('ck-start');
+  var againBtn=document.getElementById('ck-again');
+  if(coBtn)coBtn.style.display='none';
+  if(startBtn)startBtn.disabled=false;
+  if(againBtn)againBtn.style.display='inline-flex';
+  setRes('ck-res','🐔 Cashed out at '+mult+'x after '+ckCurrentRow+' rows — Won $'+fmt(win),'win');
+  if(ckSf){addHistory('chicken','win','+$'+fmt(win));gfReveal('chicken',ckSf.seed,ckSf.nonce);}
+}
+
+// ═══════════════════════════════════════════
+// GO() updates for remaining new games
+// ═══════════════════════════════════════════
+var _goFinal=go;
+go=function(screen){
+  _goFinal(screen);
+  if(screen==='chicken'){
+    ckActive=false;ckCurrentRow=0;ckGrid=[];
+    var road=document.getElementById('ck-road');if(road)road.innerHTML='';
+    var co=document.getElementById('ck-co');if(co)co.style.display='none';
+    var ckS=document.getElementById('ck-start');if(ckS){ckS.disabled=false;ckS.style.display='inline-flex';}
+    var ckA=document.getElementById('ck-again');if(ckA)ckA.style.display='none';
+    var ckR=document.getElementById('ck-row');if(ckR)ckR.textContent='0';
+    var ckM=document.getElementById('ck-mult-disp');if(ckM)ckM.textContent='1.00x';
+    var ckP=document.getElementById('ck-payout-disp');if(ckP)ckP.textContent='$0';
+    setRes('ck-res','Set difficulty and start crossing!');
+    var e=document.getElementById('bal-ck');if(e)e.textContent=fmt(bal);
+  }
+};
+
+
+
+
+</script>
+</body>
+</html>
