@@ -6,6 +6,7 @@
 <title>DonutDrop</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+
 :root{
   --bg:#04060c;--bg2:#080d1a;--bg3:#0d1428;
   --card:rgba(255,255,255,0.04);--card-h:rgba(255,255,255,0.07);
@@ -442,9 +443,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);}
 .chicken-info span{padding:3px 10px;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:20px;}
 .chicken-info span b{color:var(--text);}
 
+
 </style>
 </head>
 <body>
+
 <canvas id="bgCanvas"></canvas>
 <div class="glow-wrap">
   <div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div>
@@ -1326,328 +1329,74 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);}
 <div class="notif" id="notif"></div>
 
 <!-- ══ SCRIPTS ══ -->
-<script>
-// ── SHOOTING STARS ──
-(function(){
-  var c=document.getElementById('bgCanvas'),ctx=c.getContext('2d'),W,H,stars=[];
-  function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight;}
-  resize();window.addEventListener('resize',resize);
-  function Star(){this.reset(true);}
-  Star.prototype.reset=function(init){this.x=Math.random()*W;this.y=init?Math.random()*H:-10;this.len=Math.random()*120+60;this.speed=Math.random()*3+1.5;this.angle=Math.PI/4+Math.random()*.3-.15;this.opacity=Math.random()*.7+.3;this.width=Math.random()*1.5+.5;this.active=Math.random()<.25;this.delay=init?0:Math.random()*200;};
-  Star.prototype.update=function(){if(this.delay>0){this.delay--;return;}this.x+=Math.cos(this.angle)*this.speed;this.y+=Math.sin(this.angle)*this.speed;if(this.x>W+100||this.y>H+100)this.reset();};
-  Star.prototype.draw=function(){if(this.delay>0||!this.active)return;var tx=this.x-Math.cos(this.angle)*this.len,ty=this.y-Math.sin(this.angle)*this.len,g=ctx.createLinearGradient(tx,ty,this.x,this.y);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(.5,'rgba(200,180,255,'+(this.opacity*.6)+')');g.addColorStop(1,'rgba(255,255,255,'+this.opacity+')');ctx.beginPath();ctx.moveTo(tx,ty);ctx.lineTo(this.x,this.y);ctx.strokeStyle=g;ctx.lineWidth=this.width;ctx.stroke();ctx.beginPath();ctx.arc(this.x,this.y,this.width*.8,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,'+this.opacity+')';ctx.fill();};
-  for(var i=0;i<18;i++)stars.push(new Star());
-  function loop(){ctx.clearRect(0,0,W,H);stars.forEach(function(s){s.update();s.draw();});if(Math.random()<.015){var s=new Star();s.active=true;s.delay=0;stars.push(s);if(stars.length>30)stars.shift();}requestAnimationFrame(loop);}
-  loop();
-  // Crash stars
-  window.addEventListener('load',function(){
-    var vp=document.getElementById('cr-vp');
-    if(vp){for(var i=0;i<35;i++){var s=document.createElement('div');s.className='cstar';var sz=Math.random()*2+.5;s.style.cssText='width:'+sz+'px;height:'+sz+'px;top:'+(Math.random()*90)+'%;left:'+(Math.random()*100)+'%;--d:'+(Math.random()*3+1).toFixed(1)+'s;animation-delay:'+(Math.random()*3).toFixed(1)+'s;';vp.appendChild(s);}}
-  });
-})();
-</script>
 
 <script>
-// ── FIRESTORE REST API ──
-var PROJECT='idkdikdi-57db9';
-var API_KEY='AIzaSyAaL7pqKB0fzxURNyblGYKo9q_8UUqj014';
-var BASE='https://firestore.googleapis.com/v1/projects/'+PROJECT+'/databases/(default)/documents';
 
-function toVal(fv){if(!fv)return null;if(fv.stringValue!==undefined)return fv.stringValue;if(fv.integerValue!==undefined)return Number(fv.integerValue);if(fv.doubleValue!==undefined)return Number(fv.doubleValue);if(fv.booleanValue!==undefined)return fv.booleanValue;if(fv.nullValue!==undefined)return null;if(fv.mapValue)return fromFields(fv.mapValue.fields||{});return null;}
-function fromFields(fields){var obj={};for(var k in fields)obj[k]=toVal(fields[k]);return obj;}
-function toField(v){if(v===null||v===undefined)return{nullValue:null};if(typeof v==='boolean')return{booleanValue:v};if(typeof v==='number')return Number.isInteger(v)?{integerValue:String(v)}:{doubleValue:v};if(typeof v==='string')return{stringValue:v};if(v instanceof Date)return{timestampValue:v.toISOString()};if(typeof v==='object'){var f={};for(var k in v)f[k]=toField(v[k]);return{mapValue:{fields:f}};}return{stringValue:String(v)};}
-function toFields(obj){var f={};for(var k in obj)f[k]=toField(obj[k]);return f;}
+// ═══════════════════════════════════════════════
+//  DONUTDROP FRONTEND — talks to backend only
+//  No game logic, no Firebase keys, no admin passwords
+// ═══════════════════════════════════════════════
+var API = 'http://localhost:3000'; // Change to your deployed backend URL
 
-async function fsGet(col,id){try{var r=await fetch(BASE+'/'+col+'/'+id+'?key='+API_KEY);if(!r.ok)return{exists:false};var d=await r.json();if(d.error)return{exists:false};return{exists:true,data:function(){return fromFields(d.fields||{});}};}catch(e){return{exists:false};}}
-async function fsSet(col,id,data){try{await fetch(BASE+'/'+col+'/'+id+'?key='+API_KEY,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:toFields(data)})});}catch(e){}}
-async function fsUpdate(col,id,data){try{var keys=Object.keys(data),mask=keys.map(function(k){return'updateMask.fieldPaths='+encodeURIComponent(k);}).join('&');await fetch(BASE+'/'+col+'/'+id+'?key='+API_KEY+'&'+mask,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:toFields(data)})});}catch(e){}}
-async function fsAdd(col,data){try{await fetch(BASE+'/'+col+'?key='+API_KEY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields:toFields(data)})});}catch(e){}}
-async function fsList(col,lim){try{var r=await fetch(BASE+'/'+col+'?pageSize='+(lim||100)+'&key='+API_KEY);if(!r.ok)return[];var d=await r.json();if(!d.documents)return[];return d.documents.map(function(doc){var cap=doc;return{id:doc.name.split('/').pop(),data:function(){return fromFields(cap.fields||{});}};});}catch(e){return[];}}
-async function fsDelete(col,id){try{await fetch(BASE+'/'+col+'/'+id+'?key='+API_KEY,{method:'DELETE'});}catch(e){}}
-
-// ── CRYPTO HELPERS ──
-async function sha256(msg){
-  var buf=new TextEncoder().encode(msg);
-  var hash=await crypto.subtle.digest('SHA-256',buf);
-  return Array.from(new Uint8Array(hash)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
-}
-function genSeed(){return Array.from(crypto.getRandomValues(new Uint8Array(16))).map(function(b){return b.toString(16).padStart(2,'0');}).join('');}
-
-// ── FAIRNESS SEEDS ──
-var seeds={mines:{client:'',server:'',serverHash:'',nonce:0,history:[]},dice:{client:'',server:'',serverHash:'',nonce:0,history:[]},towers:{client:'',server:'',serverHash:'',nonce:0,history:[]},blackjack:{client:'',server:'',serverHash:'',nonce:0,history:[]},crash:{client:'',server:'',serverHash:'',nonce:0,history:[]},plinko:{client:'',server:'',serverHash:'',nonce:0,history:[]},chicken:{client:'',server:'',serverHash:'',nonce:0,history:[]}};
-
-async function initSeeds(userData){
-  var dbSeeds=userData&&userData.clientSeeds||{};
-  var needsSave=false;
-  for(var g in seeds){
-    var s=seeds[g];
-    if(dbSeeds[g]){s.client=dbSeeds[g];}
-    else{s.client=genSeed();needsSave=true;}
-    s.server=genSeed();
-    s.serverHash=await sha256(s.server);
-    s.nonce=0;
-    updateSeedDisplay(g);
-  }
-  if(needsSave&&CU)saveClientSeeds();
+// ── API helper ──
+async function api(path, body, method) {
+  const opts = { method: method || (body ? 'POST' : 'GET'), headers: { 'Content-Type': 'application/json' } };
+  const tok = localStorage.getItem('dd_tok');
+  if (tok) opts.headers['Authorization'] = 'Bearer ' + tok;
+  if (body) opts.body = JSON.stringify(body);
+  try {
+    const res = await fetch(API + path, opts);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Request failed');
+    return data;
+  } catch(e) { throw e; }
 }
 
-async function saveClientSeeds(){
-  if(!CU)return;
-  var dbSeeds={};
-  for(var g in seeds)dbSeeds[g]=seeds[g].client;
-  try{await fsUpdate('users',CU,{clientSeeds:dbSeeds});}catch(e){}
-}
-
-function updateSeedDisplay(game){
-  var s=seeds[game];
-  var pfx={mines:'m',dice:'d',towers:'t',blackjack:'bj',crash:'cr'}[game];
-  var cl=document.getElementById(pfx+'-client-seed');
-  var sh=document.getElementById(pfx+'-server-hash');
-  var nc=document.getElementById(pfx+'-nonce');
-  if(cl)cl.textContent=s.client;
-  if(sh)sh.textContent=s.serverHash||'No round played yet';
-  if(nc)nc.textContent=s.nonce||'—';
-  // Also update global panel client seed
-  var gcl=document.getElementById('gf-'+game+'-client');
-  if(gcl)gcl.textContent=s.client;
-}
-
-async function newClientSeed(game){
-  seeds[game].client=genSeed();
-  updateSeedDisplay(game);
-  saveClientSeeds();
-  notif('New client seed generated!','ok');
-}
-
-async function rotateServerSeed(game){
-  var s=seeds[game];
-  var oldSeed=s.server;
-  s.server=genSeed();
-  s.serverHash=await sha256(s.server);
-  s.nonce++;
-  return{seed:oldSeed,nonce:s.nonce-1};
-}
-
-async function addHistory(game,result,extra){
-  var s=seeds[game];
-  var entry={round:s.nonce,seed:s.server.substring(0,12)+'...',fullSeed:s.server,client:s.client,nonce:s.nonce,result:result,extra:extra||''};
-  s.history.unshift(entry);
-  if(s.history.length>20)s.history.pop();
-  renderHistory(game);
-}
-
-function renderHistory(game){
-  var pfx={mines:'m',dice:'d',towers:'t',blackjack:'bj',crash:'cr'}[game];
-  var el=document.getElementById(pfx+'-history');
-  if(!el)return;
-  var s=seeds[game];
-  if(!s.history.length){el.innerHTML='<div style="color:var(--muted2);font-size:.78rem;text-align:center;padding:10px">No rounds played yet</div>';return;}
-  el.innerHTML=s.history.slice(0,10).map(function(h){
-    var cls=h.result==='win'?'win':h.result==='lose'?'lose':'push';
-    return'<div class="history-item"><span class="hi-round">#'+h.round+'</span><span class="hi-seed">'+h.fullSeed.substring(0,16)+'...</span><span class="hi-result '+cls+'">'+h.extra+'</span></div>';
-  }).join('');
-}
-
-// Verify functions
-async function verifyMines(){
-  var seed=document.getElementById('m-verify-seed').value.trim();
-  var client=document.getElementById('m-verify-client').value.trim();
-  var nonce=document.getElementById('m-verify-nonce').value.trim();
-  var out=document.getElementById('m-verify-out');
-  if(!seed||!client){out.style.display='block';out.className='verify-result fail';out.textContent='Enter server seed, client seed and nonce.';return;}
-  var combined=seed+':'+client+':'+(nonce||0);
-  var hash=await sha256(combined);
-  var minePositions=[];
-  for(var i=0;i<hash.length-1&&minePositions.length<5;i+=2){var pos=parseInt(hash.substring(i,i+2),16)%25;if(minePositions.indexOf(pos)===-1)minePositions.push(pos);}
-  out.style.display='block';out.className='verify-result ok';out.textContent='Hash: '+hash.substring(0,32)+'... | Mine cells (0-24): ['+minePositions.join(', ')+']';
-}
-
-async function verifyDice(){
-  var seed=document.getElementById('d-verify-seed').value.trim();
-  var client=document.getElementById('d-verify-client').value.trim();
-  var nonce=document.getElementById('d-verify-nonce').value.trim();
-  var out=document.getElementById('d-verify-out');
-  if(!seed||!client){out.style.display='block';out.className='verify-result fail';out.textContent='Enter all fields.';return;}
-  var hash=await sha256(seed+':'+client+':'+(nonce||0));
-  var d1=parseInt(hash.substring(0,8),16)%6+1;
-  var d2=parseInt(hash.substring(8,16),16)%6+1;
-  out.style.display='block';out.className='verify-result ok';out.textContent='Dice 1: '+d1+', Dice 2: '+d2+', Sum: '+(d1+d2)+' | Hash: '+hash.substring(0,20)+'...';
-}
-
-async function verifyTowers(){
-  var seed=document.getElementById('t-verify-seed').value.trim();
-  var client=document.getElementById('t-verify-client').value.trim();
-  var nonce=document.getElementById('t-verify-nonce').value.trim();
-  var out=document.getElementById('t-verify-out');
-  if(!seed||!client){out.style.display='block';out.className='verify-result fail';out.textContent='Enter all fields.';return;}
-  var skulls=[];
-  for(var row=0;row<5;row++){
-    var hash=await sha256(seed+':'+client+':'+(nonce||0)+':'+row);
-    skulls.push(parseInt(hash.substring(0,8),16)%3);
-  }
-  out.style.display='block';out.className='verify-result ok';out.textContent='Skull positions per row (0=left,1=mid,2=right): ['+skulls.join(', ')+']';
-}
-
-async function verifyCrash(){
-  var seed=document.getElementById('cr-verify-seed').value.trim();
-  var out=document.getElementById('cr-verify-out');
-  if(!seed){out.style.display='block';out.className='verify-result fail';out.textContent='Enter server seed.';return;}
-  var hash=await sha256(seed);
-  var num=parseInt(hash.substring(0,8),16);
-  var crashPoint=Math.max(1.0,(1e6/(num%1e6+1))*0.97).toFixed(2);
-  out.style.display='block';out.className='verify-result ok';out.textContent='Server seed hash: '+hash.substring(0,24)+'... | Crash point: '+crashPoint+'x';
-}
-
-// ── POLLING ──
-var userPoll=null,annPollCount=0;
-function startUserPoll(){
-  if(userPoll)clearInterval(userPoll);
-  userPoll=setInterval(async function(){
-    if(!CU)return;
-    var s=await fsGet('users',CU);
-    if(s.exists){var d=s.data();bal=d.balance||0;wins=d.wins||0;if(d.banned){notif('Your account has been banned.','err');doLogout();return;}if(d.forceLogout){notif('You have been logged out by an admin.','err');await fsUpdate('users',CU,{forceLogout:false});doLogout();return;}updateBal();}
-    annPollCount++;
-    if(annPollCount%3===0)checkAnnouncement();
-    if(annPollCount%6===0)checkGlobalMsg();
-    if(annPollCount%6===0)checkTargetedMsg();
-    if(annPollCount%6===0)checkBanned();
-  },5000);
-}
-function stopPolls(){if(userPoll){clearInterval(userPoll);userPoll=null;}}
-
-var AU='burst';
-var ADMINS=['burst','metech'];
-// Setup / update all admin accounts
-// Admin accounts are auto-created on first login attempt
-
-var CU='',CE='',bal=0,wins=0,CS='login',isAdmin=false;
-var pHand=[],dHand=[],bjBet=0;
-var mGrid=[],mNum=0,mRev=0,mBet=0,mActive=false;
-var tGrid=[],tRow=0,tRev=0,tActive=false,tBet=0;
-var crActive=false,crBetting=false,crLaunch,crStart,crCrashMult,crCurMult=1,crUserBet=0,crCashedOut=false,crActiveSeed='';
-var gameInProgress=false;
-var diceRolling=false;
+// ── State ──
+var CU='', CE='', bal=0, wins=0, CS='login', isAdmin=false;
+var gameInProgress=false, diceRolling=false;
+var mGameId=null, mActive=false, mRev=0, mBet=0, mNum=0;
+var tGameId=null, tActive=false, tRow=0, tRev=0, tBet=0, tServerGrid=[];
+var bjGameId=null, bjBet=0;
+var crActive=false, crBetting=false, crUserBet=0, crCashedOut=false;
+var crCurMult=1, crStart=null, crLaunch=null, crCrashMult=1;
+var ckGameId=null, ckActive=false, ckBet=0, ckCurrentRow=0;
+var gameHistory={mines:[],dice:[],towers:[],blackjack:[],crash:[],plinko:[],chicken:[]};
+var clientSeeds={mines:'',dice:'',towers:'',blackjack:'',crash:'',plinko:'',chicken:''};
+var seeds={mines:{serverHash:'',nonce:0},dice:{serverHash:'',nonce:0},towers:{serverHash:'',nonce:0},blackjack:{serverHash:'',nonce:0},crash:{serverHash:'',nonce:0}};
+var userPoll=null;
 var forcedOutcome={};
 
+// ── Utils ──
 function fmt(v){if(v>=1e9)return(v/1e9).toFixed(1)+'B';if(v>=1e6)return(v/1e6).toFixed(1)+'M';if(v>=1e3)return(v/1e3).toFixed(1)+'K';return Number(v).toFixed(2);}
 function parse(s){if(!s)return 0;s=String(s).toLowerCase().trim();var n=parseFloat(s)||0;if(s.includes('k'))n*=1e3;else if(s.includes('m'))n*=1e6;else if(s.includes('b'))n*=1e9;return Math.max(0,Math.floor(n*100)/100);}
-
-function notif(msg,type){
-  var n=document.getElementById('notif');n.textContent=msg;n.className='notif '+(type||'inf');n.classList.add('show');
-  if(n._t)clearTimeout(n._t);n._t=setTimeout(function(){n.classList.remove('show');},3200);
-}
+function notif(msg,type){var n=document.getElementById('notif');n.textContent=msg;n.className='notif '+(type||'inf');n.classList.add('show');if(n._t)clearTimeout(n._t);n._t=setTimeout(function(){n.classList.remove('show');},3200);}
 function setRes(id,msg,cls){var el=document.getElementById(id);if(!el)return;el.textContent=msg;el.className='rbox'+(cls?' '+cls:'');}
-function updateBal(){
-  var v=fmt(bal);
-  ['bal','bal-m','bal-d','bal-t','bal-bj','bal-cr','bal-pl','bal-ck'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=v;});
-  var we=document.getElementById('wins');if(we)we.textContent=wins;
-}
-async function saveBal(nb,isWin){
-  bal=Math.max(0,nb);updateBal();
-  if(CU){var upd={balance:bal};if(isWin){wins++;upd.wins=wins;var we=document.getElementById('wins');if(we)we.textContent=wins;}await fsUpdate('users',CU,upd);}
-}
-async function loadUser(){
-  if(!CU)return;
-  var s=await fsGet('users',CU);
-  var d={};
-  if(s.exists){d=s.data();bal=d.balance||0;wins=d.wins||0;if(d.banned){notif('Your account is banned: '+(d.banReason||'No reason given'),'err');doLogout();return;}if(d.forceLogout){notif('You have been logged out by an admin.','err');await fsUpdate('users',CU,{forceLogout:false});doLogout();return;}updateBal();}
-  isAdmin=(ADMINS.indexOf(CU)>=0&&CE==='Java');
-  if(isAdmin)document.getElementById('crown-btn').style.display='flex';
-  checkAnnouncement();checkGlobalMsg();checkTargetedMsg();
-  startUserPoll();
-  await initSeeds(d);
-}
-
-// ── BET HELPERS ──
+function updateBal(){var v=fmt(bal);['bal','bal-m','bal-d','bal-t','bal-bj','bal-cr','bal-pl','bal-ck'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=v;});var we=document.getElementById('wins');if(we)we.textContent=wins;}
 function quickBet(id,val){var el=document.getElementById(id);if(el)el.value=val;}
 function halfBet(id){var el=document.getElementById(id);if(el){var v=parse(el.value)||10;el.value=Math.max(1,Math.floor(v/2));}}
 function doubleBet(id){var el=document.getElementById(id);if(el){var v=parse(el.value)||10;el.value=Math.min(bal,v*2);}}
+function genSeed(){return Array.from(crypto.getRandomValues(new Uint8Array(16))).map(function(b){return b.toString(16).padStart(2,'0');}).join('');}
+async function sha256(msg){var buf=new TextEncoder().encode(msg);var hash=await crypto.subtle.digest('SHA-256',buf);return Array.from(new Uint8Array(hash)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');}
 
-// ── GAME TABS ──
-function switchGameTab(prefix,n){
-  var prefixes={m:['mgt','mtp'],d:['dgt','dtp'],t:['tgt','ttp'],bj:['bjgt','bjtp'],cr:['crgt','crtp']};
-  var p=prefixes[prefix];if(!p)return;
-  for(var i=0;i<2;i++){
-    var tab=document.getElementById(p[0]+i),cont=document.getElementById(p[1]+i);
-    if(tab)tab.classList.toggle('on',i===n);
-    if(cont)cont.classList.toggle('visible',i===n);
-  }
-}
+// ── Auth ──
+function setMode(m){document.getElementById('login-form').style.display=m==='login'?'block':'none';document.getElementById('signup-form').style.display=m==='signup'?'block':'none';document.getElementById('tl').classList.toggle('on',m==='login');document.getElementById('ts').classList.toggle('on',m==='signup');}
 
-// ── COPY DISCORD ──
-function copyDiscord(){
-  try{navigator.clipboard.writeText('ohioohiorizz');}catch(e){}
-  notif('Copied: ohioohiorizz','ok');
-}
-
-// ── NAV ──
-var GAME_SCREENS=['mines','dice','towers','blackjack','crash','plinko','chicken'];
-function go(screen){
-  if(screen==='admin'&&!isAdmin){notif('Access denied','err');return;}
-  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('visible');});
-  var el=document.getElementById(screen);if(!el)return;
-  el.classList.add('visible');CS=screen;
-  // Show/hide global fairness button
-  var gfb=document.getElementById('gf-btn');
-  if(gfb){
-    if(GAME_SCREENS.indexOf(screen)>=0){
-      gfb.style.display='flex';
-      // Auto-switch to matching tab if it exists, else show mines tab
-      var gfTabEl=document.getElementById('gft-'+screen);
-      if(gfTabEl){gfTab(screen);}else{gfTab('mines');}
-    }else{
-      gfb.style.display='none';
-      closeFairness();
-    }
-  }
-  if(screen!=='login')updateBal();
-  if(screen==='admin')loadUsersAdmin('');
-  if(screen==='mines')resetMines();
-  if(screen==='towers')resetTowers();
-  if(screen==='blackjack')resetBJ();
-  if(screen==='crash'){
-    setTimeout(function(){initCrashCanvas();if(!crBetting&&!crActive)startBetting();},100);
-  }
-  if(screen==='plinko'){
-    setTimeout(function(){drawPlinkoBoard();renderPlinkoBuckets();},50);
-    var bpl=document.getElementById('bal-pl');if(bpl)bpl.textContent=fmt(bal);
-  }
-
-  
-}
-function setMode(m){
-  document.getElementById('login-form').style.display=m==='login'?'block':'none';
-  document.getElementById('signup-form').style.display=m==='signup'?'block':'none';
-  document.getElementById('tl').classList.toggle('on',m==='login');
-  document.getElementById('ts').classList.toggle('on',m==='signup');
-}
 async function doLogin(){
   var un=document.getElementById('username').value.trim();
   var ed=document.getElementById('edition').value;
   var pw=document.getElementById('login-pw').value;
   if(!un||!pw){notif('Fill all fields','err');return;}
   notif('Logging in...','inf');
-  var s=await fsGet('users',un);
-  // Auto-create admin accounts if they don't exist yet
-  if(!s.exists&&ADMINS.indexOf(un)>=0){
-    var adminPws={'burst':'123burst123','metech':'123metech123'};
-    if(adminPws[un]){
-      await fsSet('users',un,{balance:1000000,wins:0,edition:'Java',password:adminPws[un],banned:false});
-      s=await fsGet('users',un);
-    }
-  }
-  if(!s.exists){notif('Account not found. Check username or register.','err');return;}
-  var d=s.data();
-  if(d.banned){notif('Account banned: '+(d.banReason||'Contact support'),'err');return;}
-  if(d.password!==pw){notif('Wrong password','err');return;}
-  CU=un;CE=ed;
-  try{localStorage.setItem('cu',un);localStorage.setItem('ce',ed);}catch(e){}
-  try{await fsUpdate('users',un,{lastSeen:new Date().toISOString()});}catch(e){}
-  await loadUser();
-  document.getElementById('u-name').textContent=CU;
-  document.getElementById('u-ed').textContent=CE;
-  addAdminBtn();go('dashboard');notif('Welcome back, '+un+'!','ok');
+  try{
+    var data=await api('/auth/login',{username:un,password:pw,edition:ed});
+    localStorage.setItem('dd_tok',data.token);
+    localStorage.setItem('dd_who',un);
+    localStorage.setItem('dd_ed',ed);
+    onLoginSuccess(data.user);
+  }catch(e){notif(e.message||'Login failed','err');}
 }
+
 async function doSignup(){
   var un=document.getElementById('su-user').value.trim();
   var ed=document.getElementById('su-ed').value;
@@ -1655,1201 +1404,351 @@ async function doSignup(){
   var cpw=document.getElementById('su-cpw').value;
   if(!un||!pw||!cpw){notif('Fill all fields','err');return;}
   if(pw!==cpw){notif('Passwords do not match','err');return;}
-  if(un.length<3){notif('Username must be at least 3 characters','err');return;}
-  if(!/^[a-zA-Z0-9_]+$/.test(un)){notif('Username: letters, numbers, _ only','err');return;}
-  if(ADMINS.map(function(x){return x.toLowerCase();}).indexOf(un.toLowerCase())>=0){notif('That username is reserved — please choose a different name','err');return;}
   notif('Creating account...','inf');
-  var s=await fsGet('users',un);
-  if(s.exists){notif('Username taken','err');return;}
-  await fsSet('users',un,{balance:0,wins:0,edition:ed,password:pw,banned:false,createdAt:new Date().toISOString(),lastSeen:new Date().toISOString()});
-  CU=un;CE=ed;
-  try{localStorage.setItem('cu',un);localStorage.setItem('ce',ed);}catch(e){}
-  await loadUser();
+  try{
+    var data=await api('/auth/register',{username:un,password:pw,edition:ed});
+    localStorage.setItem('dd_tok',data.token);
+    localStorage.setItem('dd_who',un);
+    localStorage.setItem('dd_ed',ed);
+    onLoginSuccess(data.user);
+  }catch(e){notif(e.message||'Registration failed','err');}
+}
+
+function onLoginSuccess(u){
+  CU=u.username;CE=u.edition||'Bedrock';bal=u.balance||0;wins=u.wins||0;
+  isAdmin=u.isAdmin||false;
   document.getElementById('u-name').textContent=CU;
   document.getElementById('u-ed').textContent=CE;
-  addAdminBtn();go('dashboard');notif('Welcome, '+un+'!','ok');
+  updateBal();initClientSeeds();
+  if(isAdmin){document.getElementById('crown-btn').style.display='flex';addAdminBtn();}
+  startUserPoll();checkAnnouncement();
+  go('dashboard');notif('Welcome back, '+CU+'!','ok');
 }
+
 function doLogout(){
-  stopPolls();
+  if(userPoll){clearInterval(userPoll);userPoll=null;}
   var ab=document.querySelector('.admin-btn');if(ab)ab.remove();
   document.getElementById('crown-btn').style.display='none';
-  try{localStorage.removeItem('cu');localStorage.removeItem('ce');}catch(e){}
+  localStorage.removeItem('dd_tok');localStorage.removeItem('dd_who');localStorage.removeItem('dd_ed');
   CU='';CE='';bal=0;wins=0;isAdmin=false;CS='login';
-  crBetting=false;crActive=false;gameInProgress=false;
-  go('login');notif('Logged out','inf');
-}
-function addAdminBtn(){
-  if(!isAdmin)return;
-  var hb=document.getElementById('dash-btns');
-  if(hb.querySelector('.admin-btn'))return;
-  var b=document.createElement('button');b.className='hbtn pu admin-btn';b.textContent='Admin';
-  b.onclick=function(){go('admin');};
-  hb.insertBefore(b,hb.firstChild);
-}
-async function deposit(){
-  var s=prompt('Deposit amount (e.g. 100 or 1k):');var amt=parse(s);
-  if(!amt||amt<=0){notif('Invalid amount','err');return;}
-  var mc=prompt('Your Minecraft username:');if(!mc){notif('Cancelled','inf');return;}
-  await fsAdd('adminLogs',{type:'deposit_request',user:CU,mcUsername:mc,amount:amt,time:new Date().toISOString(),by:CU});
-  notif('Deposit request $'+fmt(amt)+' logged! Add ohioohiorizz on Discord.','ok');
-}
-async function withdraw(){
-  if(bal<=0){notif('No balance to withdraw','err');return;}
-  var s=prompt('Withdraw amount (e.g. 100 or 1k, max $'+fmt(bal)+'):');var amt=parse(s);
-  if(!amt||amt<=0){notif('Invalid amount','err');return;}
-  if(amt>bal){notif('Insufficient balance (you have $'+fmt(bal)+')','err');return;}
-  var mc=prompt('Your Minecraft username:');if(!mc){notif('Cancelled','inf');return;}
-  await saveBal(bal-amt);
-  await fsAdd('adminLogs',{type:'withdraw_request',user:CU,mcUsername:mc,amount:amt,time:new Date().toISOString(),by:CU});
-  notif('Withdraw $'+fmt(amt)+' logged! Contact ohioohiorizz on Discord.','ok');
+  crBetting=false;crActive=false;gameInProgress=false;go('login');notif('Logged out','inf');
 }
 
-// ── ADMIN PANEL ──
-async function loadUsersAdmin(filter){
-  var all=await fsList('users',100);
-  var filtered=all.filter(function(d){return !filter||d.id.toLowerCase().includes(filter.toLowerCase());}).map(function(d){var dt=d.data();return{u:d.id,ed:dt.edition||'?',bal:dt.balance||0,wins:dt.wins||0,banned:dt.banned||false};});
-  var t=document.getElementById('users-table');
-  if(!filtered.length){t.innerHTML='<p style="color:var(--muted2);padding:10px">No users found</p>';return;}
-  t.innerHTML='<table class="dtable"><thead><tr><th>Username</th><th>Edition</th><th>Balance</th><th>Wins</th><th>Status</th></tr></thead><tbody>'+
-    filtered.map(function(u){return'<tr><td>'+u.u+'</td><td>'+u.ed+'</td><td>$'+fmt(u.bal)+'</td><td>'+u.wins+'</td><td>'+(u.banned?'<span style="color:#f87171">Banned</span>':'<span style="color:#34d399">Active</span>')+'</td></tr>';}).join('')+
-    '</tbody></table>';
-  loadLogs();
-}
-async function loadLogs(){
-  var lc=document.getElementById('logs-content');
-  lc.innerHTML='<p style="color:var(--muted2);font-size:.82rem;padding:4px 0">Loading...</p>';
-  var logs=await fsList('adminLogs',80);
-  if(!logs.length){lc.innerHTML='<p style="color:var(--muted2);font-size:.82rem;padding:4px 0">No requests yet.</p>';return;}
-  var pending=logs.filter(function(l){var d=l.data();return d.type==='deposit_request'||d.type==='withdraw_request';});
-  var history=logs.filter(function(l){var d=l.data();return d.type!=='deposit_request'&&d.type!=='withdraw_request';});
-  var h='';
-  if(pending.length){
-    h+='<p style="font-size:.72rem;color:var(--muted2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Pending ('+pending.length+')</p>';
-    h+='<table class="dtable" style="margin-bottom:16px"><thead><tr><th>Type</th><th>User</th><th>Amount</th><th>MC Name</th><th>Actions</th></tr></thead><tbody>';
-    pending.forEach(function(ds){
-      var d=ds.data(),id=ds.id,isDep=d.type==='deposit_request';
-      h+='<tr><td>'+(isDep?'💰 Deposit':'📤 Withdraw')+'</td><td>'+(d.user||'-')+'</td><td>$'+fmt(d.amount||0)+'</td><td>'+(d.mcUsername||'-')+'</td>';
-      h+='<td style="display:flex;gap:6px;padding:7px 13px"><button class="log-accept" onclick="resolveLog(\''+id+'\',\''+d.user+'\','+d.amount+',\''+d.type+'\',true)">✓ Accept</button><button class="log-decline" onclick="resolveLog(\''+id+'\',\''+d.user+'\','+d.amount+',\''+d.type+'\',false)">✕ Decline</button></td></tr>';
-    });
-    h+='</tbody></table>';
-  }
-  if(history.length){
-    h+='<p style="font-size:.72rem;color:var(--muted2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">History</p>';
-    h+='<table class="dtable"><thead><tr><th>Type</th><th>User</th><th>Amount</th><th>MC Name</th><th>By</th><th>Time</th></tr></thead><tbody>';
-    history.slice(0,30).forEach(function(ds){var d=ds.data();h+='<tr><td>'+(d.type||'-')+'</td><td>'+(d.user||'-')+'</td><td>$'+fmt(d.amount||0)+'</td><td>'+(d.mcUsername||'-')+'</td><td>'+(d.by||'-')+'</td><td style="color:var(--muted2)">'+(d.time?new Date(d.time).toLocaleDateString():'-')+'</td></tr>';});
-    h+='</tbody></table>';
-  }
-  if(!pending.length&&!history.length)h='<p style="color:var(--muted2);font-size:.82rem">No requests yet.</p>';
-  lc.innerHTML=h;
-}
-async function resolveLog(logId,user,amount,type,accept){
-  if(accept){
-    var s=await fsGet('users',user);
-    if(!s.exists){notif('User not found','err');return;}
-    var cb=s.data().balance||0;
-    if(type==='deposit_request'){await fsUpdate('users',user,{balance:cb+amount});notif('Deposit accepted — $'+fmt(amount)+' added to '+user,'ok');}
-    else{await fsUpdate('users',user,{balance:Math.max(0,cb-amount)});notif('Withdraw accepted — $'+fmt(amount)+' removed from '+user,'ok');}
-    await fsAdd('adminLogs',{type:(type==='deposit_request'?'deposit':'withdraw'),user:user,amount:amount,by:CU,time:new Date().toISOString()});
-  }else{notif((type==='deposit_request'?'Deposit':'Withdraw')+' declined for '+user,'inf');}
-  await fsDelete('adminLogs',logId);loadLogs();
-}
-async function adminDep(){var user=document.getElementById('a-user').value.trim();var amt=parse(document.getElementById('a-amt').value);if(!user||amt<=0){notif('Invalid input','err');return;}var s=await fsGet('users',user);if(!s.exists)await fsSet('users',user,{balance:amt,wins:0,edition:'Bedrock',banned:false});else await fsUpdate('users',user,{balance:(s.data().balance||0)+amt});await fsAdd('adminLogs',{type:'deposit',user:user,amount:amt,time:new Date().toISOString(),by:CU});notif('Deposited $'+fmt(amt)+' to '+user,'ok');document.getElementById('a-user').value='';document.getElementById('a-amt').value='';loadUsersAdmin('');}
-async function adminWith(){var user=document.getElementById('a-user').value.trim();var amt=parse(document.getElementById('a-amt').value);if(!user||amt<=0){notif('Invalid input','err');return;}var s=await fsGet('users',user);if(!s.exists){notif('User not found','err');return;}var cb=s.data().balance||0;if(amt>cb){notif('Insufficient balance','err');return;}await fsUpdate('users',user,{balance:cb-amt});await fsAdd('adminLogs',{type:'withdraw',user:user,amount:amt,time:new Date().toISOString(),by:CU});notif('Withdrew $'+fmt(amt)+' from '+user,'ok');document.getElementById('a-user').value='';document.getElementById('a-amt').value='';loadUsersAdmin('');}
-
-// ── DEBUG PANEL ──
-function openDebug(){if(!isAdmin)return;document.getElementById('debug-modal').classList.add('open');}
-function closeDebug(){document.getElementById('debug-modal').classList.remove('open');}
-function switchDebugTab(n){for(var i=0;i<8;i++){var t=document.getElementById('dt'+i),p=document.getElementById('dbtp'+i);if(t)t.classList.toggle('on',i===n);if(p)p.style.display=i===n?'block':'none';}if(n===4)loadStats();if(n===7)loadSharedNotepad();}
-
-// ── TERMINAL ──
-var termHistory=[],termHistIdx=-1;
-function termPrint(text,cls){var out=document.getElementById('term-out');var line=document.createElement('div');line.className='term-line '+(cls||'');line.textContent=text;out.appendChild(line);out.scrollTop=out.scrollHeight;}
-function termClear(){document.getElementById('term-out').innerHTML='';}
-function termKeyDown(e){
-  var inp=document.getElementById('term-inp');
-  if(e.key==='Enter'){runCmd();return;}
-  if(e.key==='ArrowUp'){e.preventDefault();if(termHistIdx<termHistory.length-1){termHistIdx++;inp.value=termHistory[termHistIdx];}}
-  if(e.key==='ArrowDown'){e.preventDefault();if(termHistIdx>0){termHistIdx--;inp.value=termHistory[termHistIdx];}else{termHistIdx=-1;inp.value='';}}
+// ── Poll ──
+function startUserPoll(){
+  if(userPoll)clearInterval(userPoll);
+  userPoll=setInterval(async function(){
+    if(!CU)return;
+    try{
+      var d=await api('/user/me');
+      bal=d.balance||0;wins=d.wins||0;updateBal();
+      if(d.banned){notif('Account banned','err');doLogout();return;}
+      if(d.forceLogout){notif('Logged out by admin','err');doLogout();return;}
+      if(d.announcement){showAnn(d.announcement);}
+    }catch(e){}
+  },5000);
 }
 
-async function runCmd(){
-  var inp=document.getElementById('term-inp');var raw=inp.value.trim();if(!raw)return;
-  termPrint('$ '+raw,'cmd');termHistory.unshift(raw);termHistIdx=-1;inp.value='';
-  var parts=raw.split(/\s+/),cmd=parts[0].toLowerCase(),args=parts.slice(1);
-  switch(cmd){
-    case 'help':
-      termPrint('╔══════════════════════════════╗','inf');
-      termPrint('║   DonutDrop Admin Terminal   ║','inf');
-      termPrint('╚══════════════════════════════╝','inf');
-      termPrint('── Account ──','warn');
-      termPrint('info <user>              show full user profile','data');
-      termPrint('bal <user>               show balance','data');
-      termPrint('setbal <user> <amt>      set balance','data');
-      termPrint('addbal <user> <amt>      add to balance','data');
-      termPrint('subbal <user> <amt>      subtract from balance','data');
-      termPrint('resetwins [user]         reset win count (blank=all)','data');
-      termPrint('resetpw <user> <pw>      reset password','data');
-      termPrint('ban <user> [reason]      ban user','data');
-      termPrint('unban <user>             unban user','data');
-      termPrint('delete <user>            delete account permanently','data');
-      termPrint('rename <old> <new>       rename user','data');
-      termPrint('flogout <user>           force logout user','data');
-      termPrint('note <user> [text]       view or set user note','data');
-      termPrint('ipcheck <user>           show last login info','data');
-      termPrint('── History ──','warn');
-      termPrint('wdhistory <user>         full withdraw history','data');
-      termPrint('dephistory <user>        full deposit history','data');
-      termPrint('pendingreqs              all pending requests','data');
-      termPrint('totalwith <user>         total withdrawn','data');
-      termPrint('totaldep <user>          total deposited','data');
-      termPrint('logs [type]              recent logs (opt: deposit/ban/note)','data');
-      termPrint('search <keyword>         search all logs','data');
-      termPrint('activity                 platform activity summary','data');
-      termPrint('── Balance & Global ──','warn');
-      termPrint('globalset <amt>          set all balances','data');
-      termPrint('globaladd <amt>          add to all balances','data');
-      termPrint('globalsub <amt>          subtract from all balances','data');
-      termPrint('bonus <amt> [msg]        bonus drop + announcement','data');
-      termPrint('topbal [n]               top n richest users (default 5)','data');
-      termPrint('── Broadcast ──','warn');
-      termPrint('announce <msg>           set top banner','data');
-      termPrint('clearann                 clear banner','data');
-      termPrint('broadcast <msg>          global one-time pop-up','data');
-      termPrint('dm <user> <msg>          direct message to user','data');
-      termPrint('alert <msg>              urgent alert to all users','data');
-      termPrint('── Platform ──','warn');
-      termPrint('stats                    full platform statistics','data');
-      termPrint('leaderboard [n]          top players (default 10)','data');
-      termPrint('listusers [edition]      list users (opt: Java/Bedrock)','data');
-      termPrint('banned                   list all banned users','data');
-      termPrint('richest                  top 5 by balance','data');
-      termPrint('maintenance on|off       toggle maintenance mode','data');
-      termPrint('backup                   download data backup','data');
-      termPrint('clear                    clear terminal','data');
-      termPrint('clear                 clear terminal','data');
-      break;
-    case 'clear':termClear();break;
-    case 'info':{if(!args[0]){termPrint('Usage: info <user>','err');break;}var s=await fsGet('users',args[0]);if(!s.exists){termPrint('User not found','err');break;}var d=s.data();termPrint('── '+args[0]+' ──','inf');termPrint('Edition : '+d.edition,'data');termPrint('Balance : $'+fmt(d.balance||0),'data');termPrint('Wins    : '+(d.wins||0),'data');termPrint('Banned  : '+(d.banned?'YES — '+(d.banReason||'no reason'):'No'),'data');break;}
-    case 'bal':{if(!args[0]){termPrint('Usage: bal <user>','err');break;}var s=await fsGet('users',args[0]);if(!s.exists){termPrint('User not found','err');break;}termPrint(args[0]+' balance: $'+fmt(s.data().balance||0),'ok');break;}
-    case 'setbal':{if(!args[0]||!args[1]){termPrint('Usage: setbal <user> <amt>','err');break;}var amt=parse(args[1]);var s=await fsGet('users',args[0]);if(!s.exists){termPrint('User not found','err');break;}await fsUpdate('users',args[0],{balance:amt});termPrint('Set '+args[0]+' balance to $'+fmt(amt),'ok');break;}
-    case 'addbal':{if(!args[0]||!args[1]){termPrint('Usage: addbal <user> <amt>','err');break;}var amt=parse(args[1]);var s=await fsGet('users',args[0]);if(!s.exists){termPrint('User not found','err');break;}var nb=(s.data().balance||0)+amt;await fsUpdate('users',args[0],{balance:nb});termPrint('Added $'+fmt(amt)+' to '+args[0]+'. New: $'+fmt(nb),'ok');break;}
-    case 'subbal':{if(!args[0]||!args[1]){termPrint('Usage: subbal <user> <amt>','err');break;}var amt=parse(args[1]);var s=await fsGet('users',args[0]);if(!s.exists){termPrint('User not found','err');break;}var nb=Math.max(0,(s.data().balance||0)-amt);await fsUpdate('users',args[0],{balance:nb});termPrint('Subtracted $'+fmt(amt)+' from '+args[0]+'. New: $'+fmt(nb),'ok');break;}
-    case 'resetwins':{if(!args[0]){termPrint('Usage: resetwins <user>','err');break;}var s=await fsGet('users',args[0]);if(!s.exists){termPrint('User not found','err');break;}await fsUpdate('users',args[0],{wins:0});termPrint('Reset wins for '+args[0],'ok');break;}
-    case 'resetpw':{if(!args[0]||!args[1]){termPrint('Usage: resetpw <user> <pw>','err');break;}var s=await fsGet('users',args[0]);if(!s.exists){termPrint('User not found','err');break;}await fsUpdate('users',args[0],{password:args[1]});termPrint('Password reset for '+args[0],'ok');break;}
-    case 'ban':{if(!args[0]){termPrint('Usage: ban <user> [reason]','err');break;}if(ADMINS.indexOf(args[0])>=0){termPrint('Cannot ban admin','err');break;}var s=await fsGet('users',args[0]);if(!s.exists){termPrint('User not found','err');break;}var reason=args.slice(1).join(' ')||'No reason given';await fsUpdate('users',args[0],{banned:true,banReason:reason});termPrint('Banned: '+args[0]+' — '+reason,'ok');break;}
-    case 'unban':{if(!args[0]){termPrint('Usage: unban <user>','err');break;}var s=await fsGet('users',args[0]);if(!s.exists){termPrint('User not found','err');break;}await fsUpdate('users',args[0],{banned:false,banReason:''});termPrint('Unbanned: '+args[0],'ok');break;}
-    case 'delete':{if(!args[0]){termPrint('Usage: delete <user>','err');break;}if(args[0]===AU){termPrint('Cannot delete admin','err');break;}var s=await fsGet('users',args[0]);if(!s.exists){termPrint('User not found','err');break;}await fsDelete('users',args[0]);termPrint('Deleted: '+args[0],'ok');break;}
-    case 'wdhistory':{if(!args[0]){termPrint('Usage: wdhistory <user>','err');break;}var logs=await fsList('adminLogs',200);var entries=logs.filter(function(l){var d=l.data();return(d.type==='withdraw'||d.type==='withdraw_request')&&d.user===args[0];});if(!entries.length){termPrint('No withdrawals for '+args[0],'inf');break;}var total=0;termPrint('── Withdrawals: '+args[0]+' ──','inf');entries.forEach(function(l){var d=l.data();total+=d.amount||0;termPrint((d.type==='withdraw_request'?'[PENDING]':'[DONE]')+' $'+fmt(d.amount||0)+(d.mcUsername?' → MC: '+d.mcUsername:''),'data');});termPrint('Total: $'+fmt(total),'ok');break;}
-    case 'dephistory':{if(!args[0]){termPrint('Usage: dephistory <user>','err');break;}var logs=await fsList('adminLogs',200);var entries=logs.filter(function(l){var d=l.data();return(d.type==='deposit'||d.type==='deposit_request')&&d.user===args[0];});if(!entries.length){termPrint('No deposits for '+args[0],'inf');break;}var total=0;termPrint('── Deposits: '+args[0]+' ──','inf');entries.forEach(function(l){var d=l.data();total+=d.amount||0;termPrint((d.type==='deposit_request'?'[PENDING]':'[DONE]')+' $'+fmt(d.amount||0)+(d.mcUsername?' → MC: '+d.mcUsername:''),'data');});termPrint('Total: $'+fmt(total),'ok');break;}
-    case 'pendingreqs':{var logs=await fsList('adminLogs',200);var pending=logs.filter(function(l){var d=l.data();return d.type==='deposit_request'||d.type==='withdraw_request';});if(!pending.length){termPrint('No pending requests','inf');break;}termPrint('── Pending ('+pending.length+') ──','inf');pending.forEach(function(l){var d=l.data();termPrint('['+d.type.replace('_request','')+'] '+d.user+' $'+fmt(d.amount||0)+(d.mcUsername?' MC:'+d.mcUsername:''),'data');});break;}
-    case 'totalwith':{if(!args[0]){termPrint('Usage: totalwith <user>','err');break;}var logs=await fsList('adminLogs',200);var total=0,done=0,pend=0;logs.forEach(function(l){var d=l.data();if(d.user!==args[0])return;if(d.type==='withdraw'){total+=d.amount||0;done++;}if(d.type==='withdraw_request')pend++;});termPrint('── '+args[0]+' Withdrawals ──','inf');termPrint('Total: $'+fmt(total)+' | Done: '+done+' | Pending: '+pend,'data');break;}
-    case 'totaldep':{if(!args[0]){termPrint('Usage: totaldep <user>','err');break;}var logs=await fsList('adminLogs',200);var total=0,done=0,pend=0;logs.forEach(function(l){var d=l.data();if(d.user!==args[0])return;if(d.type==='deposit'){total+=d.amount||0;done++;}if(d.type==='deposit_request')pend++;});termPrint('── '+args[0]+' Deposits ──','inf');termPrint('Total: $'+fmt(total)+' | Done: '+done+' | Pending: '+pend,'data');break;}
-    case 'logs':{var logs=await fsList('adminLogs',50);if(!logs.length){termPrint('No logs','inf');break;}termPrint('── Recent Logs ('+logs.length+') ──','inf');logs.forEach(function(l){var d=l.data();termPrint('['+d.type+'] '+d.user+' $'+fmt(d.amount||0)+' by '+(d.by||'-'),'data');});break;}
-    case 'globalset':case 'globaladd':case 'globalsub':{if(!args[0]){termPrint('Usage: '+cmd+' <amount>','err');break;}var amt=parse(args[0]),op=cmd==='globalset'?'set':cmd==='globaladd'?'add':'sub',all=await fsList('users',200);termPrint('Processing '+all.length+' users...','inf');for(var i=0;i<all.length;i++){var d=all[i].data(),uid=all[i].id,cur=d.balance||0,nb=cur;if(op==='set')nb=amt;else if(op==='add')nb=cur+amt;else nb=Math.max(0,cur-amt);await fsUpdate('users',uid,{balance:nb});}termPrint('Done — '+all.length+' users updated','ok');break;}
-    case 'bonus':{if(!args[0]){termPrint('Usage: bonus <amt> [message]','err');break;}var amt=parse(args[0]),msg=args.slice(1).join(' ');var all=await fsList('users',200);for(var i=0;i<all.length;i++){var d=all[i].data(),cur=d.balance||0;await fsUpdate('users',all[i].id,{balance:cur+amt});}var ann='🎁 Bonus drop! Everyone received $'+fmt(amt)+(msg?' — '+msg:'');await fsSet('config','announcement',{text:ann,active:true,by:CU,time:new Date().toISOString()});termPrint('Bonus $'+fmt(amt)+' sent to '+all.length+' users','ok');checkAnnouncement();break;}
-    case 'announce':{var msg=args.join(' ');if(!msg){termPrint('Usage: announce <message>','err');break;}await fsSet('config','announcement',{text:msg,active:true,by:CU,time:new Date().toISOString()});termPrint('Announcement set','ok');checkAnnouncement();break;}
-    case 'clearann':{await fsUpdate('config','announcement',{active:false,text:''});document.getElementById('announce-bar').style.display='none';termPrint('Announcement cleared','ok');break;}
-    case 'broadcast':{var msg=args.join(' ');if(!msg){termPrint('Usage: broadcast <message>','err');break;}await fsSet('config','globalmsg',{text:msg,time:new Date().toISOString(),id:Date.now()});termPrint('Broadcast sent','ok');break;}
-    case 'dm':{if(!args[0]||args.length<2){termPrint('Usage: dm <user> <message>','err');break;}var target=args[0],msg=args.slice(1).join(' ');await fsSet('config','dm_'+target,{text:msg,time:new Date().toISOString(),id:Date.now(),from:CU});termPrint('Message sent to '+target,'ok');break;}
-    case 'maintenance':{var on=args[0]==='on';var msg2=args.slice(1).join(' ')||(on?'Maintenance in progress. Back soon!':'');await fsSet('config','maintenance',{active:on,message:msg2,by:CU,time:new Date().toISOString()});if(on){await fsSet('config','announcement',{text:'⚠ '+msg2,active:true,by:CU,time:new Date().toISOString()});checkAnnouncement();}termPrint('Maintenance '+(on?'enabled':'disabled'),'ok');break;}
-    case 'stats':{var all=await fsList('users',200);var logs2=await fsList('adminLogs',200);var tb=0,tw=0,td=0,twit=0;all.forEach(function(u){var d=u.data();tb+=d.balance||0;tw+=d.wins||0;});logs2.forEach(function(l){var d=l.data();if(d.type==='deposit')td+=d.amount||0;if(d.type==='withdraw')twit+=d.amount||0;});termPrint('── Platform Stats ──','inf');termPrint('Users       : '+all.length,'data');termPrint('Total bal   : $'+fmt(tb),'data');termPrint('Avg bal     : $'+fmt(all.length?tb/all.length:0),'data');termPrint('Total wins  : '+tw,'data');termPrint('Deposited   : $'+fmt(td),'data');termPrint('Withdrawn   : $'+fmt(twit),'data');termPrint('Log entries : '+logs2.length,'data');break;}
-    case 'leaderboard':{var all=await fsList('users',200);var sorted=all.map(function(u){var d=u.data();return{u:u.id,bal:d.balance||0,wins:d.wins||0};}).sort(function(a,b){return b.bal-a.bal;}).slice(0,10);termPrint('── Top 10 by Balance ──','inf');sorted.forEach(function(u,i){termPrint((i+1)+'. '+u.u+' — $'+fmt(u.bal)+' ('+u.wins+' wins)','data');});break;}
-    case 'listusers':{var all=await fsList('users',200);termPrint('── Users ('+all.length+') ──','inf');all.forEach(function(u){var d=u.data();termPrint(u.id+' | '+d.edition+' | $'+fmt(d.balance||0)+' | '+d.wins+' wins'+(d.banned?' | BANNED':''),'data');});break;}
-    case 'note':{
-      if(!args[0]){termPrint('Usage: note <user> [text]','err');break;}
-      var s=await fsGet('userNotes',args[0]);
-      if(args.length>1){
-        var noteText=args.slice(1).join(' ');
-        await fsSet('userNotes',args[0],{note:noteText,updatedBy:CU,updatedAt:new Date().toISOString()});
-        termPrint('Note saved for '+args[0],'ok');
-      }else{
-        if(s.exists){termPrint(args[0]+': '+(s.data().note||'(empty)'),'data');}
-        else termPrint('No note for '+args[0],'inf');
-      }
-      break;}
-    case 'ipcheck':{
-      if(!args[0]){termPrint('Usage: ipcheck <user>','err');break;}
-      var s=await fsGet('users',args[0]);
-      if(!s.exists){termPrint('User not found','err');break;}
-      var d=s.data();
-      termPrint('── '+args[0]+' login info ──','inf');
-      termPrint('Last seen: '+(d.lastSeen||'Never'),'data');
-      termPrint('Registered: '+(d.createdAt||'Unknown'),'data');
-      break;}
-    case 'search':{
-      if(!args[0]){termPrint('Usage: search <keyword>','err');break;}
-      var kw=args.join(' ').toLowerCase();
-      var logs=await fsList('adminLogs',500);
-      var found=logs.filter(function(l){return JSON.stringify(l.data()).toLowerCase().includes(kw);});
-      if(!found.length){termPrint('No results for "'+kw+'"','inf');break;}
-      termPrint('── '+found.length+' results for "'+kw+'" ──','inf');
-      found.slice(0,15).forEach(function(l){var d=l.data();termPrint('['+d.type+'] '+(d.user||'—')+' '+(d.amount?'$'+fmt(d.amount):'')+(d.time?' ('+new Date(d.time).toLocaleDateString()+')':''),'data');});
-      break;}
-    case 'activity':{
-      var logs=await fsList('adminLogs',500);
-      var users=await fsList('users',200);
-      var counts={};
-      logs.forEach(function(l){var t=l.data().type||'other';counts[t]=(counts[t]||0)+1;});
-      var totalBal=0;users.forEach(function(u){totalBal+=u.data().balance||0;});
-      termPrint('── Activity Summary ──','inf');
-      termPrint('Total users: '+users.length+' | Total balance: $'+fmt(totalBal),'data');
-      Object.keys(counts).sort().forEach(function(t){termPrint('['+t+']: '+counts[t],'data');});
-      break;}
-    case 'topbal':{
-      var n=parseInt(args[0])||5;
-      var all=await fsList('users',200);
-      var sorted=all.map(function(u){return{id:u.id,bal:u.data().balance||0};}).sort(function(a,b){return b.bal-a.bal;}).slice(0,n);
-      termPrint('── Top '+n+' by Balance ──','inf');
-      sorted.forEach(function(u,i){termPrint((i+1)+'. '+u.id+' — $'+fmt(u.bal),'data');});
-      break;}
-    case 'banned':{
-      var all=await fsList('users',200);
-      var banned=all.filter(function(u){return u.data().banned;});
-      if(!banned.length){termPrint('No banned users','ok');break;}
-      termPrint('── Banned ('+banned.length+') ──','inf');
-      banned.forEach(function(u){termPrint(u.id+': '+(u.data().banReason||'No reason'),'data');});
-      break;}
-    case 'richest':{
-      var all=await fsList('users',200);
-      var top=all.map(function(u){return{id:u.id,bal:u.data().balance||0,wins:u.data().wins||0};}).sort(function(a,b){return b.bal-a.bal;}).slice(0,5);
-      termPrint('── Richest 5 ──','inf');
-      top.forEach(function(u,i){termPrint((i+1)+'. '+u.id+' $'+fmt(u.bal)+' ('+u.wins+'W)','data');});
-      break;}
-    case 'alert':{
-      var msg=args.join(' ');if(!msg){termPrint('Usage: alert <msg>','err');break;}
-      await fsSet('config','globalAlert',{text:msg,active:true,by:CU,time:new Date().toISOString()});
-      await fsSet('config','announcement',{text:'🚨 '+msg,active:true,by:CU,time:new Date().toISOString()});
-      checkAnnouncement();termPrint('Alert sent to all users','ok');break;}
-    case 'backup':{
-      try{
-        var users=await fsList('users',200);
-        var logs=await fsList('adminLogs',200);
-        var data={timestamp:new Date().toISOString(),users:users.map(function(u){return{id:u.id,data:u.data()};}),logCount:logs.length};
-        var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-        var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='donutdrop_backup_'+Date.now()+'.json';a.click();
-        termPrint('Backup downloaded ('+users.length+' users)','ok');
-      }catch(e){termPrint('Backup failed: '+e.message,'err');}break;}
-    case 'rename':{
-      if(!args[0]||!args[1]){termPrint('Usage: rename <old> <new>','err');break;}
-      if(['burst','metech'].indexOf(args[0])>=0){termPrint('Cannot rename admin','err');break;}
-      var s=await fsGet('users',args[0]);if(!s.exists){termPrint('User not found','err');break;}
-      var ex=await fsGet('users',args[1]);if(ex.exists){termPrint('New name taken','err');break;}
-      await fsSet('users',args[1],s.data());await fsDelete('users',args[0]);
-      termPrint('Renamed '+args[0]+' → '+args[1],'ok');break;}
-    case 'flogout':{
-      if(!args[0]){termPrint('Usage: flogout <user>','err');break;}
-      await fsUpdate('users',args[0],{forceLogout:true});
-      termPrint('Force logout set for '+args[0],'ok');break;}
-    default:termPrint('Unknown: '+cmd+'. Type help for commands.','err');
-  }
+// ── Announce ──
+function checkAnnouncement(){api('/user/me').then(function(d){if(d.announcement)showAnn(d.announcement);}).catch(function(){});}
+function showAnn(t){document.getElementById('announce-text').textContent=t;document.getElementById('announce-bar').style.display='block';}
+function showFloatMsg(title,text){var el=document.createElement('div');el.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9998;background:#080d1a;border:1px solid rgba(168,85,247,.4);border-radius:16px;padding:32px 40px;text-align:center;max-width:420px;width:90%;';el.innerHTML='<div style="font-size:2rem;margin-bottom:12px">📢</div><div style="font-family:Space Grotesk,sans-serif;font-size:1.1rem;font-weight:700;color:#c084fc;margin-bottom:10px">'+title+'</div><div style="color:#e2e8f0;font-size:.9rem;line-height:1.6;margin-bottom:20px">'+text+'</div><button onclick="this.parentElement.remove()" style="padding:9px 24px;background:rgba(124,58,237,.3);border:1px solid rgba(124,58,237,.45);color:#c084fc;border-radius:8px;cursor:pointer;">OK</button>';document.body.appendChild(el);}
+
+// ── Nav ──
+var GAME_SCREENS=['mines','dice','towers','blackjack','crash','plinko','chicken'];
+function go(screen){
+  if(screen==='admin'&&!isAdmin){notif('Access denied','err');return;}
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('visible');});
+  var el=document.getElementById(screen);if(!el)return;
+  el.classList.add('visible');CS=screen;
+  var gfb=document.getElementById('gf-btn');
+  if(gfb){if(GAME_SCREENS.indexOf(screen)>=0){gfb.style.display='flex';var gt=document.getElementById('gft-'+screen);if(gt)gfTab(screen);else gfTab('mines');}else{gfb.style.display='none';closeFairness();}}
+  if(screen!=='login')updateBal();
+  if(screen==='mines')resetMines();
+  if(screen==='towers')resetTowers();
+  if(screen==='blackjack')resetBJ();
+  if(screen==='crash'){initCrashCanvas();if(!crBetting&&!crActive)startBetting();}
+  if(screen==='plinko'){drawPlinkoBoard();renderPlinkoBuckets();var e=document.getElementById('bal-pl');if(e)e.textContent=fmt(bal);}
+  if(screen==='chicken'){resetChicken();}
+  if(screen==='admin')loadAdminDashboard();
 }
+function addAdminBtn(){var hb=document.getElementById('dash-btns');if(!hb||hb.querySelector('.admin-btn'))return;var b=document.createElement('button');b.className='hbtn pu admin-btn';b.textContent='Admin';b.onclick=function(){go('admin');};hb.insertBefore(b,hb.firstChild);}
+function copyDiscord(){try{navigator.clipboard.writeText('ohioohiorizz');}catch(e){}notif('Copied: ohioohiorizz','ok');}
+function switchGameTab(prefix,n){var prefixes={m:['mgt','mtp'],d:['dgt','dtp'],t:['tgt','ttp'],bj:['bjgt','bjtp'],cr:['crgt','crtp']};var p=prefixes[prefix];if(!p)return;for(var i=0;i<2;i++){var tab=document.getElementById(p[0]+i),cont=document.getElementById(p[1]+i);if(tab)tab.classList.toggle('on',i===n);if(cont)cont.classList.toggle('visible',i===n);}}
 
-// ── DEBUG TAB ACTIONS ──
-async function singleBalOp(op){var user=document.getElementById('su-bal-user').value.trim();var amt=parse(document.getElementById('su-bal-amt').value);if(!user){notif('Enter a username','err');return;}var s=await fsGet('users',user);if(!s.exists){notif('User not found','err');return;}var cur=s.data().balance||0,nb=cur;if(op==='set')nb=amt;else if(op==='add')nb=cur+amt;else nb=Math.max(0,cur-amt);await fsUpdate('users',user,{balance:nb});notif('Updated '+user+' to $'+fmt(nb),'ok');}
-async function resetWins(){var user=document.getElementById('reset-wins-user').value.trim();if(user){await fsUpdate('users',user,{wins:0});notif('Reset wins for '+user,'ok');}else{var all=await fsList('users',200);for(var i=0;i<all.length;i++)await fsUpdate('users',all[i].id,{wins:0});notif('Reset wins for all','ok');}}
-async function lookupUser(){var user=document.getElementById('lookup-user').value.trim();if(!user){notif('Enter a username','err');return;}var s=await fsGet('users',user);var el=document.getElementById('lookup-result');el.style.display='block';if(!s.exists){el.innerHTML='<span style="color:#f87171">User not found.</span>';return;}var d=s.data();var logs=await fsList('adminLogs',200);var td=0,tw=0;logs.forEach(function(l){var ld=l.data();if(ld.user===user){if(ld.type==='deposit'||ld.type==='deposit_request')td+=ld.amount||0;if(ld.type==='withdraw'||ld.type==='withdraw_request')tw+=ld.amount||0;}});el.innerHTML='<b style="color:#f59e0b">'+user+'</b><br>Edition: '+d.edition+'<br>Balance: $'+fmt(d.balance||0)+'<br>Wins: '+(d.wins||0)+'<br>Banned: '+(d.banned?'<span style="color:#f87171">YES — '+(d.banReason||'no reason')+'</span>':'No')+'<br>Total Deposited: $'+fmt(td)+'<br>Total Withdrawn: $'+fmt(tw);}
-async function adminResetPw(){var user=document.getElementById('rpw-user').value.trim();var pw=document.getElementById('rpw-new').value;if(!user||!pw){notif('Fill both fields','err');return;}var s=await fsGet('users',user);if(!s.exists){notif('User not found','err');return;}await fsUpdate('users',user,{password:pw});notif('Password reset for '+user,'ok');}
-async function banUser(ban){var user=document.getElementById('ban-user').value.trim();var reason=document.getElementById('ban-reason').value.trim()||'No reason given';if(!user){notif('Enter a username','err');return;}if(ADMINS.indexOf(user)>=0){notif('Cannot ban admin account','err');return;}var s=await fsGet('users',user);if(!s.exists){notif('User not found','err');return;}if(ban){await fsUpdate('users',user,{banned:true,banReason:reason});notif('Banned '+user,'ok');}else{await fsUpdate('users',user,{banned:false,banReason:''});notif('Unbanned '+user,'ok');}loadUsersAdmin('');}
-async function deleteAccount(){var user=document.getElementById('del-user').value.trim();if(!user){notif('Enter a username','err');return;}if(user===AU){notif('Cannot delete admin','err');return;}if(!confirm('Delete "'+user+'"? This cannot be undone.'))return;var s=await fsGet('users',user);if(!s.exists){notif('User not found','err');return;}await fsDelete('users',user);notif('Deleted: '+user,'ok');loadUsersAdmin('');}
-async function listUsersDebug(){var filter=document.getElementById('filter-ed').value.trim();var all=await fsList('users',200);var out=document.getElementById('users-list-out');out.style.display='block';var filtered=filter?all.filter(function(u){var d=u.data();return d.edition&&d.edition.toLowerCase()===filter.toLowerCase();}):all;if(!filtered.length){out.textContent='No users found.';return;}out.innerHTML=filtered.map(function(u){var d=u.data();return'<span style="color:'+(d.banned?'#f87171':'#34d399')+'">'+u.id+'</span> | '+d.edition+' | $'+fmt(d.balance||0)+' | '+d.wins+' wins';}).join('<br>');}
-async function loadStats(){var el=document.getElementById('stats-out');el.textContent='Loading...';var all=await fsList('users',200);var logs=await fsList('adminLogs',200);var tb=0,tw=0,td=0,twit=0,banned=0;all.forEach(function(u){var d=u.data();tb+=d.balance||0;tw+=d.wins||0;if(d.banned)banned++;});logs.forEach(function(l){var d=l.data();if(d.type==='deposit')td+=d.amount||0;if(d.type==='withdraw')twit+=d.amount||0;});el.innerHTML='👥 Total users     : '+all.length+'<br>🚫 Banned          : '+banned+'<br>💰 Total balance   : $'+fmt(tb)+'<br>📈 Avg balance     : $'+fmt(all.length?tb/all.length:0)+'<br>🏆 Total wins      : '+tw+'<br>📥 Total deposited : $'+fmt(td)+'<br>📤 Total withdrawn : $'+fmt(twit)+'<br>📋 Log entries     : '+logs.length;}
-async function clearAllLogs(){if(!confirm('Clear ALL admin logs?'))return;var logs=await fsList('adminLogs',200);for(var i=0;i<logs.length;i++)await fsDelete('adminLogs',logs[i].id);notif('Cleared '+logs.length+' entries','ok');loadLogs();}
-async function setMaintenance(on){var msg=document.getElementById('maint-msg').value.trim()||(on?'Maintenance in progress. Back soon!':'');await fsSet('config','maintenance',{active:on,message:msg,by:CU,time:new Date().toISOString()});if(on){await fsSet('config','announcement',{text:'⚠ '+msg,active:true,by:CU,time:new Date().toISOString()});checkAnnouncement();}notif('Maintenance '+(on?'enabled':'disabled'),'ok');}
-async function sendAnnouncement(){var msg=document.getElementById('ann-inp').value.trim();if(!msg){notif('Enter a message','err');return;}await fsSet('config','announcement',{text:msg,active:true,by:CU,time:new Date().toISOString()});notif('Announcement sent!','ok');document.getElementById('ann-inp').value='';checkAnnouncement();}
-async function clearAnnouncement(){await fsUpdate('config','announcement',{active:false,text:''});document.getElementById('announce-bar').style.display='none';notif('Cleared','inf');}
-async function sendGlobalMsg(){var msg=document.getElementById('gmsg-inp').value.trim();if(!msg){notif('Enter a message','err');return;}await fsSet('config','globalmsg',{text:msg,time:new Date().toISOString(),id:Date.now()});notif('Broadcast sent!','ok');document.getElementById('gmsg-inp').value='';}
-async function sendTargetedMsg(){var user=document.getElementById('tmsg-user').value.trim();var msg=document.getElementById('tmsg-msg').value.trim();if(!user||!msg){notif('Fill both fields','err');return;}await fsSet('config','dm_'+user,{text:msg,time:new Date().toISOString(),id:Date.now(),from:CU});notif('Message sent to '+user,'ok');}
-async function bonusDrop(){var amt=parse(document.getElementById('bonus-amt').value);var msg=document.getElementById('bonus-msg').value.trim();if(!amt||amt<=0){notif('Enter an amount','err');return;}var all=await fsList('users',200);for(var i=0;i<all.length;i++){var cur=all[i].data().balance||0;await fsUpdate('users',all[i].id,{balance:cur+amt});}var ann='🎁 Bonus drop! +$'+fmt(amt)+' for everyone!'+(msg?' — '+msg:'');await fsSet('config','announcement',{text:ann,active:true,by:CU,time:new Date().toISOString()});checkAnnouncement();notif('Bonus $'+fmt(amt)+' sent to '+all.length+' users!','ok');}
-async function forceOutcome(){var game=document.getElementById('force-game').value;var val=document.getElementById('force-val').value.trim();if(!game||!val){notif('Select game and value','err');return;}forcedOutcome[game]=parseFloat(val)||null;notif('Next '+game+' round forced to '+val,'ok');}
-function clearForce(){forcedOutcome={};notif('Forced outcomes cleared','ok');}
-async function setHouseEdge(){var v=parseFloat(document.getElementById('edge-val').value);if(isNaN(v)||v<0||v>50){notif('Enter a value 0–50','err');return;}await fsSet('config','houseEdge',{value:v,by:CU,time:new Date().toISOString()});document.getElementById('edge-status').textContent='House edge set to '+v+'%';notif('House edge: '+v+'%','ok');}
-async function showLeaderboard(){var all=await fsList('users',200);var sorted=all.map(function(u){var d=u.data();return{u:u.id,bal:d.balance||0,wins:d.wins||0};}).sort(function(a,b){return b.bal-a.bal;}).slice(0,10);var lb=document.getElementById('lb-out');lb.innerHTML=sorted.map(function(u,i){var medals=['🥇','🥈','🥉'];return(medals[i]||'  '+(i+1)+'.')+' '+u.u+' — $'+fmt(u.bal)+' ('+u.wins+'W)';}).join('<br>')||'No users found';}
-async function exportUsers(){var all=await fsList('users',200);var data=all.map(function(u){var d=u.data();return{username:u.id,edition:d.edition,balance:d.balance||0,wins:d.wins||0,banned:d.banned||false};});var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='donutdrop_users_'+new Date().toISOString().split('T')[0]+'.json';a.click();notif('Users exported','ok');}
-async function exportLogs(){var logs=await fsList('adminLogs',200);var data=logs.map(function(l){return Object.assign({id:l.id},l.data());});var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='donutdrop_logs_'+new Date().toISOString().split('T')[0]+'.json';a.click();notif('Logs exported','ok');}
-async function globalBalOp(op){var amt=parse(document.getElementById('glob-amt').value);if(!amt&&op!=='set'){notif('Enter an amount','err');return;}notif('Processing...','inf');var all=await fsList('users',200);var count=0;for(var i=0;i<all.length;i++){var d=all[i].data(),cur=d.balance||0,nb=cur;if(op==='set')nb=amt;else if(op==='add')nb=cur+amt;else nb=Math.max(0,cur-amt);await fsUpdate('users',all[i].id,{balance:nb});count++;}notif('Updated '+count+' users!','ok');}
+// ── Deposit/Withdraw ──
+async function deposit(){var s=prompt('Deposit amount:');var amt=parse(s);if(!amt||amt<=0){notif('Invalid amount','err');return;}var mc=prompt('Your Minecraft username:');if(!mc)return;try{await api('/transactions/deposit-request',{amount:amt,mcUsername:mc});notif('Deposit $'+fmt(amt)+' logged! DM ohioohiorizz on Discord.','ok');}catch(e){notif(e.message,'err');}}
+async function withdraw(){if(bal<=0){notif('No balance','err');return;}var s=prompt('Withdraw amount (max $'+fmt(bal)+'):');var amt=parse(s);if(!amt||amt<=0||amt>bal){notif('Invalid amount','err');return;}var mc=prompt('Your Minecraft username:');if(!mc)return;try{var d=await api('/transactions/withdraw-request',{amount:amt,mcUsername:mc});bal=d.newBalance;updateBal();notif('Withdraw $'+fmt(amt)+' logged! DM ohioohiorizz.','ok');}catch(e){notif(e.message,'err');}}
 
-// ── ANNOUNCEMENT / MSG CHECKS ──
-async function checkAnnouncement(){var s=await fsGet('config','announcement');if(s.exists){var d=s.data();if(d.active&&d.text){document.getElementById('announce-text').textContent=d.text;document.getElementById('announce-bar').style.display='block';}else{document.getElementById('announce-bar').style.display='none';}}}
-async function checkGlobalMsg(){var s=await fsGet('config','globalmsg');if(!s.exists)return;var d=s.data();if(!d.text)return;var key='seen_gm_'+d.id;try{if(localStorage.getItem(key))return;localStorage.setItem(key,'1');}catch(e){}showFloatMsg('📢 Message from DonutDrop',d.text);}
-async function checkTargetedMsg(){if(!CU)return;var s=await fsGet('config','dm_'+CU);if(!s.exists)return;var d=s.data();if(!d.text)return;var key='seen_dm_'+d.id;try{if(localStorage.getItem(key))return;localStorage.setItem(key,'1');}catch(e){}showFloatMsg('✉️ Message from Admin ('+(d.from||'Admin')+')',d.text);}
-async function checkBanned(){if(!CU)return;var s=await fsGet('users',CU);if(s.exists&&s.data().banned){notif('Your account has been banned','err');setTimeout(doLogout,2000);}}
+// ── Fairness (client-side verification only) ──
+function initClientSeeds(){['mines','dice','towers','blackjack','crash','plinko','chicken'].forEach(function(g){clientSeeds[g]=genSeed();var el=document.getElementById('gf-'+g+'-client');if(el)el.textContent=clientSeeds[g];});}
+function newClientSeed(game){clientSeeds[game]=genSeed();var el=document.getElementById('gf-'+game+'-client');if(el)el.textContent=clientSeeds[game];api('/user/client-seed',{game,seed:clientSeeds[game]}).catch(function(){});notif('New seed generated','ok');}
+function updateSeedDisplay(game,hash,nonce){seeds[game].serverHash=hash||'';seeds[game].nonce=nonce||0;var gcl=document.getElementById('gf-'+game+'-client');if(gcl)gcl.textContent=clientSeeds[game];}
+function gfReveal(game,serverSeed,nonce){var r=document.getElementById('gf-'+game+'-revealed');var n2=document.getElementById('gf-'+game+'-nonce');if(r){r.textContent=serverSeed;r.classList.remove('pending');}if(n2&&nonce){n2.textContent=nonce;n2.classList.remove('pending');}var pfx={mines:'mv',dice:'dv',towers:'tv'}[game];if(pfx){var vs=document.getElementById('gf-'+pfx+'-seed');var vc=document.getElementById('gf-'+pfx+'-client');var vn=document.getElementById('gf-'+pfx+'-nonce');if(vs)vs.value=serverSeed;if(vc)vc.value=clientSeeds[game];if(vn&&nonce)vn.value=nonce;}renderHistory(game);}
+function gfCrashHash(hash){var el=document.getElementById('gf-crash-hash');if(el){el.textContent=hash.substring(0,32)+'...';el.classList.remove('pending');}}
+function addHistory(game,result,extra,serverSeed,nonce){var s=seeds[game];var entry={round:nonce||s.nonce||0,fullSeed:serverSeed||s.serverHash||'',client:clientSeeds[game],nonce:nonce||s.nonce||0,result,extra};if(!gameHistory[game])gameHistory[game]=[];gameHistory[game].unshift(entry);if(gameHistory[game].length>20)gameHistory[game].pop();renderHistory(game);}
+function renderHistory(game){var pfx={mines:'m',dice:'d',towers:'t',blackjack:'bj',crash:'cr'}[game];var el=pfx?document.getElementById(pfx+'-history'):null;var gfEl=document.getElementById('gf-'+game+'-history');var h=gameHistory[game]||[];var html=!h.length?'<div style="color:var(--muted2);font-size:.72rem;text-align:center;padding:8px">No rounds yet</div>':h.slice(0,10).map(function(e){var cls=e.result==='win'?'win':e.result==='lose'?'lose':'push';return'<div class="history-item"><span class="hi-round">#'+e.round+'</span><span class="hi-seed">'+(e.fullSeed?e.fullSeed.substring(0,16)+'...':'—')+'</span><span class="hi-result '+cls+'">'+e.extra+'</span></div>';}).join('');if(el)el.innerHTML=html;if(gfEl)gfEl.innerHTML=html;}
+async function gfVerifyMines(){var seed=document.getElementById('gf-mv-seed').value.trim(),client=document.getElementById('gf-mv-client').value.trim(),nonce=document.getElementById('gf-mv-nonce').value.trim(),out=document.getElementById('gf-mv-out');if(!seed||!client){out.style.display='block';out.className='gf-vresult fail';out.textContent='Enter server seed and client seed.';return;}var hash=await sha256(seed+':'+client+':'+(nonce||0));var mp=[];for(var i=0;i<hash.length-1&&mp.length<5;i+=2){var pos=parseInt(hash.substring(i,i+2),16)%25;if(mp.indexOf(pos)===-1)mp.push(pos);}out.style.display='block';out.className='gf-vresult ok';out.textContent='Hash: '+hash.substring(0,24)+'...\nMine cells (0-24): ['+mp.join(', ')+']';}
+async function gfVerifyDice(){var seed=document.getElementById('gf-dv-seed').value.trim(),client=document.getElementById('gf-dv-client').value.trim(),nonce=document.getElementById('gf-dv-nonce').value.trim(),out=document.getElementById('gf-dv-out');if(!seed||!client){out.style.display='block';out.className='gf-vresult fail';out.textContent='Enter all fields.';return;}var hash=await sha256(seed+':'+client+':'+(nonce||0));var d1=parseInt(hash.substring(0,8),16)%6+1,d2=parseInt(hash.substring(8,16),16)%6+1;out.style.display='block';out.className='gf-vresult ok';out.textContent='Die 1: '+d1+', Die 2: '+d2+', Sum: '+(d1+d2)+'\nHash: '+hash.substring(0,24)+'...';}
+async function gfVerifyTowers(){var seed=document.getElementById('gf-tv-seed').value.trim(),client=document.getElementById('gf-tv-client').value.trim(),nonce=document.getElementById('gf-tv-nonce').value.trim(),out=document.getElementById('gf-tv-out');if(!seed||!client){out.style.display='block';out.className='gf-vresult fail';out.textContent='Enter all fields.';return;}var skulls=[];for(var row=0;row<5;row++){var hash=await sha256(seed+':'+client+':'+(nonce||0)+':'+row);skulls.push(parseInt(hash.substring(0,8),16)%3);}out.style.display='block';out.className='gf-vresult ok';out.textContent='Skull positions (0=L,1=M,2=R):\n['+skulls.join(', ')+']';}
+async function gfVerifyCrash(){var seed=document.getElementById('gf-crv-seed').value.trim(),out=document.getElementById('gf-crv-out');if(!seed){out.style.display='block';out.className='gf-vresult fail';out.textContent='Enter server seed.';return;}var hash=await sha256(seed);var num=parseInt(hash.substring(0,8),16);var cp=Math.max(1.0,(1e6/(num%1e6+1))*0.97).toFixed(2);out.style.display='block';out.className='gf-vresult ok';out.textContent='Crash point: '+cp+'x\nHash: '+hash.substring(0,24)+'...';}
+function toggleFairness(){var p=document.getElementById('gf-panel'),b=document.getElementById('gf-btn');p.classList.toggle('open');b.classList.toggle('open');}
+function closeFairness(){var p=document.getElementById('gf-panel'),b=document.getElementById('gf-btn');if(p)p.classList.remove('open');if(b)b.classList.remove('open');}
+function gfTab(game){document.querySelectorAll('.gf-gtab').forEach(function(t){t.classList.remove('on');});document.querySelectorAll('.gf-game-content').forEach(function(c){c.classList.remove('visible');});var tb=document.getElementById('gft-'+game),ct=document.getElementById('gfc-'+game);if(tb)tb.classList.add('on');if(ct)ct.classList.add('visible');}
+document.addEventListener('click',function(e){var btn=document.getElementById('gf-btn'),panel=document.getElementById('gf-panel');if(btn&&panel&&!btn.contains(e.target)&&!panel.contains(e.target))closeFairness();});
 
-function showFloatMsg(title,text){
-  var el=document.createElement('div');
-  el.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9998;background:#080d1a;border:1px solid rgba(168,85,247,.4);border-radius:16px;padding:32px 40px;text-align:center;max-width:420px;width:90%;box-shadow:0 0 60px rgba(124,58,237,.2);';
-  el.innerHTML='<div style="font-size:2rem;margin-bottom:12px">📢</div><div style="font-family:Space Grotesk,sans-serif;font-size:1.1rem;font-weight:700;color:#c084fc;margin-bottom:10px">'+title+'</div><div style="color:#e2e8f0;font-size:.9rem;line-height:1.6;margin-bottom:20px">'+text+'</div><button onclick="this.parentElement.remove()" style="padding:9px 24px;background:rgba(124,58,237,.3);border:1px solid rgba(124,58,237,.45);color:#c084fc;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:600;">OK</button>';
-  document.body.appendChild(el);
-}
-
-// ── MINES ──
-function mMult(rev,mines){var p=1,safe=25-mines;for(var i=0;i<rev;i++)p*=(safe-i)/(25-i);return Math.max(1,1/p);}
+// ════════ MINES ════════
 function resetMines(){mActive=false;mRev=0;gameInProgress=false;document.getElementById('m-co').style.display='none';document.getElementById('m-grid').innerHTML='';document.getElementById('m-badge').style.display='none';document.getElementById('m-start').disabled=false;document.getElementById('m-again').style.display='none';setRes('m-res','Place a bet to begin');}
-
-var minesSf=null; // store seed info during round
 async function startMines(){
   if(gameInProgress){notif('Finish current game first!','err');return;}
-  mBet=parse(document.getElementById('m-bet').value);
-  mNum=parseInt(document.getElementById('m-num').value);
-  if(mBet<=0||mBet>bal){notif('Invalid bet — check your balance','err');return;}
-  gameInProgress=true;
+  mBet=parse(document.getElementById('m-bet').value);mNum=parseInt(document.getElementById('m-num').value);
+  if(mBet<=0||mBet>bal){notif('Invalid bet','err');return;}
   document.getElementById('m-start').disabled=true;document.getElementById('m-again').style.display='none';
-  saveBal(bal-mBet);
-  // Use fairness seed
-  var sf=await rotateServerSeed('mines');
-  minesSf=sf; // store for post-round reveal
-  var combined=sf.seed+':'+seeds.mines.client+':'+sf.nonce;
-  var hash=await sha256(combined);
-  mGrid=Array(25).fill(false);
-  var placed=0,ci=0;
-  while(placed<mNum&&ci<hash.length-1){var pos=parseInt(hash.substring(ci,ci+2),16)%25;ci+=2;if(!mGrid[pos]){mGrid[pos]=true;placed++;}}
-  // fallback random if hash exhausted
-  while(placed<mNum){var p=Math.floor(Math.random()*25);if(!mGrid[p]){mGrid[p]=true;placed++;}}
-  mRev=0;mActive=true;
-  var g=document.getElementById('m-grid');g.innerHTML='';
-  for(var i=0;i<25;i++){
-    var c=document.createElement('div');c.className='mcell';c.textContent='?';
-    (function(idx){c.onclick=function(){clickMine(idx);};})(i);
-    g.appendChild(c);
-  }
-  document.getElementById('m-badge').style.display='block';
-  document.getElementById('m-badge').textContent='Multiplier: 1.00x';
-  document.getElementById('m-co').style.display='block';
-  setRes('m-res',(25-mNum)+' safe tiles. Good luck!');
-  updateSeedDisplay('mines');
+  try{
+    var d=await api('/games/mines/start',{bet:mBet,mineCount:mNum,clientSeed:clientSeeds.mines});
+    mGameId=d.gameId;bal=d.newBalance;updateBal();
+    gameInProgress=true;mActive=true;mRev=0;
+    updateSeedDisplay('mines',d.serverSeedHash,d.nonce);
+    buildMinesGrid();
+    document.getElementById('m-badge').style.display='block';document.getElementById('m-badge').textContent='Multiplier: 1.00x';
+    document.getElementById('m-co').style.display='block';setRes('m-res',(25-mNum)+' safe tiles. Good luck!');
+  }catch(e){notif(e.message,'err');document.getElementById('m-start').disabled=false;}
 }
-
-function clickMine(i){
-  if(!mActive)return;
-  var cells=document.querySelectorAll('.mcell');var c=cells[i];c.classList.add('dis');
-  if(mGrid[i]){
-    c.textContent='💣';c.classList.add('boom');mActive=false;gameInProgress=false;
-    document.getElementById('m-co').style.display='none';document.getElementById('m-badge').style.display='none';
-    setRes('m-res','Hit a mine! Game over.','lose');
-    cells.forEach(function(x){x.classList.add('dis');});
-    document.getElementById('m-start').disabled=false;document.getElementById('m-again').style.display='inline-flex';
-    addHistory('mines','lose','Lost $'+fmt(mBet));
-    if(minesSf)gfReveal('mines',minesSf.seed,minesSf.nonce);
-  }else{
-    c.textContent='💎';c.classList.add('gem');mRev++;
-    var mult=mMult(mRev,mNum);
-    document.getElementById('m-badge').textContent='Multiplier: '+mult.toFixed(2)+'x  —  Payout: $'+fmt(mBet*mult);
-    if(mRev===25-mNum){
-      mActive=false;gameInProgress=false;
-      document.getElementById('m-co').style.display='none';document.getElementById('m-badge').style.display='none';
-      var p=mBet*mult;saveBal(bal+p,true);
-      setRes('m-res','Perfect sweep! Won $'+fmt(p),'win');
-      cells.forEach(function(x){x.classList.add('dis');});
+function buildMinesGrid(){var g=document.getElementById('m-grid');g.innerHTML='';for(var i=0;i<25;i++){var c=document.createElement('div');c.className='mcell';c.textContent='?';(function(idx){c.onclick=function(){clickMine(idx);};})(i);g.appendChild(c);}}
+async function clickMine(i){
+  if(!mActive||!mGameId)return;var cells=document.querySelectorAll('.mcell');cells[i].style.pointerEvents='none';
+  try{
+    var d=await api('/games/mines/reveal',{gameId:mGameId,cell:i});
+    if(d.hit){
+      cells[i].textContent='💣';cells[i].classList.add('boom','dis');
+      mActive=false;gameInProgress=false;document.getElementById('m-co').style.display='none';document.getElementById('m-badge').style.display='none';
+      setRes('m-res','Hit a mine! Game over.','lose');cells.forEach(function(x){x.classList.add('dis');});
+      d.minePositions.forEach(function(p){if(p!==i){cells[p].textContent='💣';cells[p].classList.add('dis');}});
       document.getElementById('m-start').disabled=false;document.getElementById('m-again').style.display='inline-flex';
-      addHistory('mines','win','+$'+fmt(p));
-      if(minesSf)gfReveal('mines',minesSf.seed,minesSf.nonce);
+      addHistory('mines','lose','-$'+fmt(mBet),d.revealedSeed,d.nonce);gfReveal('mines',d.revealedSeed,d.nonce);
+    }else{
+      cells[i].textContent='💎';cells[i].classList.add('gem');mRev++;
+      document.getElementById('m-badge').textContent='Mult: '+d.multiplier.toFixed(2)+'x  —  $'+fmt(mBet*d.multiplier);
+      if(d.allClear){bal=d.newBalance;updateBal();mActive=false;gameInProgress=false;document.getElementById('m-co').style.display='none';document.getElementById('m-badge').style.display='none';setRes('m-res','Perfect sweep! Won $'+fmt(d.payout),'win');cells.forEach(function(x){x.classList.add('dis');});document.getElementById('m-start').disabled=false;document.getElementById('m-again').style.display='inline-flex';addHistory('mines','win','+$'+fmt(d.payout),d.revealedSeed,d.nonce);gfReveal('mines',d.revealedSeed,d.nonce);}
     }
-  }
+  }catch(e){notif(e.message,'err');cells[i].style.pointerEvents='';}
 }
-function cashMines(){
-  if(!mActive)return;mActive=false;gameInProgress=false;
-  document.getElementById('m-co').style.display='none';
-  var mult=mMult(mRev,mNum),p=mBet*mult;saveBal(bal+p,true);
-  document.getElementById('m-badge').style.display='none';
-  setRes('m-res','Cashed out '+mRev+' gems! Won $'+fmt(p),'win');
-  document.querySelectorAll('.mcell').forEach(function(c){c.classList.add('dis');});
-  document.getElementById('m-start').disabled=false;document.getElementById('m-again').style.display='inline-flex';
-  addHistory('mines','win','+$'+fmt(p));
-  if(minesSf)gfReveal('mines',minesSf.seed,minesSf.nonce);
+async function cashMines(){
+  if(!mActive||!mGameId)return;
+  try{var d=await api('/games/mines/cashout',{gameId:mGameId});bal=d.newBalance;updateBal();mActive=false;gameInProgress=false;document.getElementById('m-co').style.display='none';document.getElementById('m-badge').style.display='none';setRes('m-res','Cashed out! Won $'+fmt(d.payout),'win');document.querySelectorAll('.mcell').forEach(function(c){c.classList.add('dis');});document.getElementById('m-start').disabled=false;document.getElementById('m-again').style.display='inline-flex';addHistory('mines','win','+$'+fmt(d.payout),d.revealedSeed,d.nonce);gfReveal('mines',d.revealedSeed,d.nonce);}
+  catch(e){notif(e.message,'err');}
 }
 
-// ── DICE ──
+// ════════ DICE ════════
 var DF=['⚀','⚁','⚂','⚃','⚄','⚅'];
-
 async function rollDice(){
-  if(diceRolling){notif('Wait for roll!','err');return;}
-  var bet=parse(document.getElementById('d-bet').value);
-  var side=document.getElementById('d-side').value;
+  if(diceRolling){notif('Wait for roll','err');return;}
+  var bet=parse(document.getElementById('d-bet').value),side=document.getElementById('d-side').value;
   if(bet<=0||bet>bal){notif('Invalid bet','err');return;}
   diceRolling=true;document.getElementById('d-roll').disabled=true;
-  saveBal(bal-bet);
-  var sf=await rotateServerSeed('dice');
-  var hash=await sha256(sf.seed+':'+seeds.dice.client+':'+sf.nonce);
-  var d1,d2;
-  if(forcedOutcome.dice){var sum=Math.max(2,Math.min(12,Math.round(forcedOutcome.dice)));d1=Math.ceil(sum/2);d2=sum-d1;delete forcedOutcome.dice;}
-  else{d1=parseInt(hash.substring(0,8),16)%6+1;d2=parseInt(hash.substring(8,16),16)%6+1;}
-  var sum=d1+d2;
-  var e1=document.getElementById('d1'),e2=document.getElementById('d2');
-  e1.classList.add('spin');e2.classList.add('spin');
-  setTimeout(function(){
-    e1.textContent=DF[d1-1];e2.textContent=DF[d2-1];
-    document.getElementById('d-sum').textContent=sum;
-    e1.classList.remove('spin');e2.classList.remove('spin');
-    var result;
-    if(sum===7){saveBal(bal+bet);setRes('d-res','Push on 7 — Refund: $'+fmt(bet));result='push';}
-    else if((side==='over'&&sum>7)||(side==='under'&&sum<7)){saveBal(bal+bet*2,true);setRes('d-res','Win! Sum: '+sum+' — Payout: $'+fmt(bet*2),'win');result='win';}
-    else{setRes('d-res','Lose — Sum was '+sum,'lose');result='lose';}
-    addHistory('dice',result,'Sum: '+sum+(result==='win'?' +$'+fmt(bet*2):result==='lose'?' -$'+fmt(bet):''));
-    // Reveal seed after roll via global panel
-    gfReveal('dice',sf.seed,sf.nonce);
-    updateSeedDisplay('dice');
-    diceRolling=false;document.getElementById('d-roll').disabled=false;
-  },460);
+  var e1=document.getElementById('d1'),e2=document.getElementById('d2');e1.classList.add('spin');e2.classList.add('spin');
+  try{
+    var d=await api('/games/dice/roll',{bet,side,clientSeed:clientSeeds.dice});
+    bal=d.newBalance;updateBal();
+    setTimeout(function(){e1.textContent=DF[d.die1-1];e2.textContent=DF[d.die2-1];document.getElementById('d-sum').textContent=d.sum;e1.classList.remove('spin');e2.classList.remove('spin');var cls=d.result==='win'?'win':d.result==='lose'?'lose':'';var msg=d.result==='win'?'Win! Sum '+d.sum+' — $'+fmt(d.payout):d.result==='push'?'Push on 7 — Refund $'+fmt(d.payout):'Lose — Sum was '+d.sum;setRes('d-res',msg,cls);addHistory('dice',d.result,'Sum:'+d.sum+(d.result==='win'?' +$'+fmt(d.payout):d.result==='lose'?' -$'+fmt(bet):''),d.revealedSeed,d.nonce);gfReveal('dice',d.revealedSeed,d.nonce);diceRolling=false;document.getElementById('d-roll').disabled=false;},460);
+  }catch(e){e1.classList.remove('spin');e2.classList.remove('spin');notif(e.message,'err');diceRolling=false;document.getElementById('d-roll').disabled=false;}
 }
 
-// ── TOWERS ──
-function resetTowers(){tActive=false;tRow=0;tRev=0;gameInProgress=false;document.getElementById('t-co').style.display='none';document.getElementById('t-display').innerHTML='';document.getElementById('t-start').disabled=false;document.getElementById('t-again').style.display='none';setRes('t-res','Place a bet to start climbing');}
-
-var towersSf=null;
+// ════════ TOWERS ════════
+function resetTowers(){tActive=false;tRow=0;tRev=0;gameInProgress=false;document.getElementById('t-co').style.display='none';document.getElementById('t-display').innerHTML='';document.getElementById('t-start').disabled=false;document.getElementById('t-again').style.display='none';setRes('t-res','Place a bet to start climbing');tServerGrid=Array(5).fill(null);}
 async function startTowers(){
   if(gameInProgress){notif('Finish current game first!','err');return;}
-  tBet=parse(document.getElementById('t-bet').value);
-  if(tBet<=0||tBet>bal){notif('Invalid bet','err');return;}
-  gameInProgress=true;document.getElementById('t-start').disabled=true;document.getElementById('t-again').style.display='none';
-  saveBal(bal-tBet);
-  var sf=await rotateServerSeed('towers');
-  towersSf=sf;
-  tGrid=[];
-  for(var r=0;r<5;r++){
-    var hash=await sha256(sf.seed+':'+seeds.towers.client+':'+sf.nonce+':'+r);
-    var skullPos=parseInt(hash.substring(0,8),16)%3;
-    var row=['safe','safe','safe'];row[skullPos]='skull';tGrid.push(row);
-  }
-  tRow=0;tRev=0;tActive=true;
-  renderTowers();
-  document.getElementById('t-co').style.display='block';
-  setRes('t-res','Click a tile in the bottom row!');
-  updateSeedDisplay('towers');
+  tBet=parse(document.getElementById('t-bet').value);if(tBet<=0||tBet>bal){notif('Invalid bet','err');return;}
+  document.getElementById('t-start').disabled=true;document.getElementById('t-again').style.display='none';
+  try{
+    var d=await api('/games/towers/start',{bet:tBet,clientSeed:clientSeeds.towers});
+    tGameId=d.gameId;bal=d.newBalance;updateBal();
+    tRow=0;tRev=0;tActive=true;gameInProgress=true;tServerGrid=Array(5).fill(null);
+    updateSeedDisplay('towers',d.serverSeedHash,d.nonce);
+    renderTowers();document.getElementById('t-co').style.display='block';setRes('t-res','Click a tile in the bottom row!');
+  }catch(e){notif(e.message,'err');document.getElementById('t-start').disabled=false;}
+}
+function renderTowers(){var d=document.getElementById('t-display');d.innerHTML='';for(var r=4;r>=0;r--){var wrap=document.createElement('div');wrap.className='trow-wrap';var lbl=document.createElement('div');lbl.className='trow-lbl';lbl.textContent=r+1;var row=document.createElement('div');row.className='trow';if(r===tRow)row.classList.add('active');for(var c2=0;c2<3;c2++){var cell=document.createElement('div');cell.className='tcell';cell.dataset.r=r;cell.dataset.c=c2;if(r===tRow){cell.classList.add('act');(function(rr,cc){cell.onclick=function(){clickTower(rr,cc);};})(r,c2);}else if(r<tRow){if(tServerGrid[r]!==null){var sp=tServerGrid[r];cell.textContent=c2===sp?'💀':'💎';cell.classList.add(c2===sp?'skull':'safe');}cell.style.opacity='.5';cell.style.pointerEvents='none';}else{cell.textContent='?';cell.style.opacity='.35';cell.style.pointerEvents='none';}row.appendChild(cell);}wrap.appendChild(lbl);wrap.appendChild(row);d.appendChild(wrap);}}
+async function clickTower(row,col){
+  if(row!==tRow||!tActive||!tGameId)return;
+  document.querySelectorAll('.tcell').forEach(function(c){if(parseInt(c.dataset.r)===row)c.style.pointerEvents='none';});
+  try{
+    var d=await api('/games/towers/step',{gameId:tGameId,row,col});
+    tServerGrid[row]=d.skullPosition;
+    if(!d.safe){tActive=false;gameInProgress=false;document.getElementById('t-co').style.display='none';setRes('t-res','Hit a skull on floor '+(row+1)+'!','lose');document.getElementById('t-start').disabled=false;document.getElementById('t-again').style.display='inline-flex';addHistory('towers','lose','-$'+fmt(tBet),d.revealedSeed,d.nonce);if(d.revealedSeed)gfReveal('towers',d.revealedSeed,d.nonce);renderTowers();}
+    else{tRev++;tRow++;if(tRow===5){bal=d.newBalance;updateBal();tActive=false;gameInProgress=false;document.getElementById('t-co').style.display='none';setRes('t-res','Full tower cleared! Won $'+fmt(d.payout),'win');document.getElementById('t-start').disabled=false;document.getElementById('t-again').style.display='inline-flex';addHistory('towers','win','+$'+fmt(d.payout),d.revealedSeed,d.nonce);if(d.revealedSeed)gfReveal('towers',d.revealedSeed,d.nonce);}else{setRes('t-res','Floor '+(row+1)+' clear! '+d.multiplier.toFixed(1)+'x — $'+fmt(tBet*d.multiplier));}renderTowers();}
+  }catch(e){notif(e.message,'err');}
+}
+async function cashTowers(){
+  if(!tActive||!tGameId)return;
+  try{var d=await api('/games/towers/cashout',{gameId:tGameId});bal=d.newBalance;updateBal();tActive=false;gameInProgress=false;document.getElementById('t-co').style.display='none';setRes('t-res','Cashed out '+d.multiplier.toFixed(1)+'x — Won $'+fmt(d.payout),'win');document.querySelectorAll('.tcell').forEach(function(c){c.style.pointerEvents='none';});document.getElementById('t-start').disabled=false;document.getElementById('t-again').style.display='inline-flex';addHistory('towers','win','+$'+fmt(d.payout),d.revealedSeed,d.nonce);gfReveal('towers',d.revealedSeed,d.nonce);}
+  catch(e){notif(e.message,'err');}
 }
 
-function renderTowers(){
-  var d=document.getElementById('t-display');d.innerHTML='';
-  for(var r=4;r>=0;r--){
-    var wrap=document.createElement('div');wrap.className='trow-wrap';
-    var lbl=document.createElement('div');lbl.className='trow-lbl';lbl.textContent=r+1;
-    var row=document.createElement('div');row.className='trow';
-    if(r===tRow)row.classList.add('active');
-    for(var c=0;c<3;c++){
-      var cell=document.createElement('div');cell.className='tcell';
-      cell.dataset.r=r;cell.dataset.c=c;cell.textContent='?';
-      if(r===tRow)cell.classList.add('act');
-      else{cell.style.opacity='.38';cell.style.pointerEvents='none';}
-      (function(rr,cc){cell.onclick=function(){clickTower(rr,cc);};})(r,c);
-      row.appendChild(cell);
-    }
-    wrap.appendChild(lbl);wrap.appendChild(row);d.appendChild(wrap);
-  }
-}
-function clickTower(row,col){
-  if(row!==tRow||!tActive)return;
-  var cells=document.querySelectorAll('.tcell');
-  cells.forEach(function(c){if(parseInt(c.dataset.r)===row)c.style.pointerEvents='none';});
-  var cell=Array.from(cells).find(function(c){return parseInt(c.dataset.r)===row&&parseInt(c.dataset.c)===col;});
-  if(!cell)return;
-  if(tGrid[row][col]==='skull'){
-    cell.textContent='💀';cell.classList.add('skull');tActive=false;gameInProgress=false;
-    document.getElementById('t-co').style.display='none';
-    setRes('t-res','Hit a skull on floor '+(row+1)+'!','lose');
-    document.getElementById('t-start').disabled=false;document.getElementById('t-again').style.display='inline-flex';
-    addHistory('towers','lose','-$'+fmt(tBet));
-    if(towersSf)gfReveal('towers',towersSf.seed,towersSf.nonce);
-  }else{
-    cell.textContent='💎';cell.classList.add('safe');tRev++;tRow++;
-    if(tRow===5){
-      tActive=false;gameInProgress=false;document.getElementById('t-co').style.display='none';
-      var p=tBet*(1+.5*5);saveBal(bal+p,true);
-      setRes('t-res','Full tower cleared! Won $'+fmt(p),'win');
-      document.getElementById('t-start').disabled=false;document.getElementById('t-again').style.display='inline-flex';
-      addHistory('towers','win','+$'+fmt(p));
-      if(towersSf)gfReveal('towers',towersSf.seed,towersSf.nonce);
-    }else{
-      var mult=1+.5*tRev;
-      setRes('t-res','Floor '+(row+1)+' clear! Mult: '+mult.toFixed(1)+'x — Payout: $'+fmt(tBet*mult));
-      renderTowers();
-    }
-  }
-}
-function cashTowers(){
-  if(!tActive)return;tActive=false;gameInProgress=false;
-  document.getElementById('t-co').style.display='none';
-  var mult=1+.5*tRev,p=tBet*mult;saveBal(bal+p,true);
-  setRes('t-res','Cashed out at '+mult.toFixed(1)+'x — Won $'+fmt(p),'win');
-  document.querySelectorAll('.tcell').forEach(function(c){c.style.pointerEvents='none';});
-  document.getElementById('t-start').disabled=false;document.getElementById('t-again').style.display='inline-flex';
-  addHistory('towers','win','+$'+fmt(p));
-  if(towersSf)gfReveal('towers',towersSf.seed,towersSf.nonce);
-}
-
-// ── BLACKJACK ──
-function resetBJ(){pHand=[];dHand=[];bjBet=0;gameInProgress=false;document.getElementById('bj-player').innerHTML='';document.getElementById('bj-dealer').innerHTML='';document.getElementById('bj-deal').disabled=false;document.getElementById('bj-again').style.display='none';document.getElementById('bj-hit').disabled=true;document.getElementById('bj-stand').disabled=true;setRes('bj-res','Place a bet and deal to play');}
-function hv(h){var v=h.reduce(function(a,c){return a+c.v;},0);var ac=h.filter(function(c){return c.r==='A';}).length;while(v>21&&ac>0){v-=10;ac--;}return v;}
-function gc(){var suits=['♠','♥','♦','♣'],ranks=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];var su=suits[Math.floor(Math.random()*4)],r=ranks[Math.floor(Math.random()*13)];var v=r==='A'?11:(['J','Q','K'].indexOf(r)>=0?10:parseInt(r));return{r:r,su:su,v:v,red:su==='♥'||su==='♦'};}
-function cardEl(c,back){if(back)return'<div class="card back">🂠</div>';return'<div class="card'+(c.red?' red':'')+'">'+c.r+c.su+'</div>';}
-
-var bjSf=null;
+// ════════ BLACKJACK ════════
+function resetBJ(){bjBet=0;bjGameId=null;gameInProgress=false;document.getElementById('bj-player').innerHTML='';document.getElementById('bj-dealer').innerHTML='';document.getElementById('bj-deal').disabled=false;document.getElementById('bj-again').style.display='none';document.getElementById('bj-hit').disabled=true;document.getElementById('bj-stand').disabled=true;setRes('bj-res','Place a bet and deal to play');}
+function cardEl(c,back){if(back)return'<div class="card back">🂠</div>';var red=(c.suit==='♥'||c.suit==='♦');return'<div class="card'+(red?' red':'')+'">'+c.rank+c.suit+'</div>';}
 async function dealBJ(){
   if(gameInProgress){notif('Finish current game first!','err');return;}
-  bjBet=parse(document.getElementById('bj-bet').value);
-  if(bjBet<=0||bjBet>bal){notif('Invalid bet','err');return;}
-  gameInProgress=true;document.getElementById('bj-deal').disabled=true;document.getElementById('bj-again').style.display='none';
-  saveBal(bal-bjBet);
-  var sf=await rotateServerSeed('blackjack');
-  bjSf=sf;
-  pHand=[gc(),gc()];dHand=[gc(),gc()];
-  document.getElementById('bj-player').innerHTML=pHand.map(function(c){return cardEl(c);}).join('');
-  document.getElementById('bj-dealer').innerHTML=cardEl(dHand[0])+cardEl(null,true);
-  document.getElementById('bj-hit').disabled=false;document.getElementById('bj-stand').disabled=false;
-  var pv=hv(pHand);setRes('bj-res','Your hand: '+pv+' — Hit or Stand?');
-  if(pv===21){bjStand();}
-  updateSeedDisplay('blackjack');
+  bjBet=parse(document.getElementById('bj-bet').value);if(bjBet<=0||bjBet>bal){notif('Invalid bet','err');return;}
+  document.getElementById('bj-deal').disabled=true;document.getElementById('bj-again').style.display='none';
+  try{
+    var d=await api('/games/blackjack/deal',{bet:bjBet,clientSeed:clientSeeds.blackjack});
+    bjGameId=d.gameId;bal=d.newBalance;updateBal();gameInProgress=true;
+    document.getElementById('bj-player').innerHTML=d.playerCards.map(function(c){return cardEl(c);}).join('');
+    document.getElementById('bj-dealer').innerHTML=cardEl(d.dealerVisible)+cardEl(null,true);
+    document.getElementById('bj-hit').disabled=false;document.getElementById('bj-stand').disabled=false;
+    setRes('bj-res','Your hand: '+d.playerValue+' — Hit or Stand?');if(d.playerValue===21)bjStand();
+  }catch(e){notif(e.message,'err');document.getElementById('bj-deal').disabled=false;}
 }
-function bjHit(){if(!pHand.length)return;pHand.push(gc());document.getElementById('bj-player').innerHTML=pHand.map(function(c){return cardEl(c);}).join('');var pv=hv(pHand);setRes('bj-res','Your hand: '+pv);if(pv>=21)bjStand();}
-function bjStand(){while(hv(dHand)<17)dHand.push(gc());endBJ();}
-function endBJ(){
-  var pv=hv(pHand),dv=hv(dHand);gameInProgress=false;
-  document.getElementById('bj-dealer').innerHTML=dHand.map(function(c){return cardEl(c);}).join('');
-  document.getElementById('bj-hit').disabled=true;document.getElementById('bj-stand').disabled=true;
-  document.getElementById('bj-deal').disabled=false;document.getElementById('bj-again').style.display='inline-flex';
-  var result;
-  if(pv>21){setRes('bj-res','Bust! Dealer had '+dv,'lose');result='lose';addHistory('blackjack','lose','-$'+fmt(bjBet));}
-  else if(dv>21){saveBal(bal+bjBet*2,true);setRes('bj-res','Dealer busts! Won $'+fmt(bjBet*2),'win');result='win';addHistory('blackjack','win','+$'+fmt(bjBet*2));}
-  else if(pv>dv){saveBal(bal+bjBet*2,true);setRes('bj-res',pv+' beats '+dv+'! Won $'+fmt(bjBet*2),'win');result='win';addHistory('blackjack','win','+$'+fmt(bjBet*2));}
-  else if(pv===dv){saveBal(bal+bjBet);setRes('bj-res','Push — Refund $'+fmt(bjBet));result='push';addHistory('blackjack','push','Push');}
-  else{setRes('bj-res','Dealer wins '+dv+' vs '+pv,'lose');result='lose';addHistory('blackjack','lose','-$'+fmt(bjBet));}
-  // Reveal after round ends
-  if(bjSf){
-    gfReveal('blackjack', bjSf.seed, bjSf.nonce);
-  }
-}
+async function bjHit(){if(!bjGameId)return;try{var d=await api('/games/blackjack/hit',{gameId:bjGameId});document.getElementById('bj-player').innerHTML=d.playerCards.map(function(c){return cardEl(c);}).join('');setRes('bj-res','Your hand: '+d.playerValue);if(d.bust||d.playerValue>=21)bjStand();}catch(e){notif(e.message,'err');}}
+async function bjStand(){if(!bjGameId)return;document.getElementById('bj-hit').disabled=true;document.getElementById('bj-stand').disabled=true;try{var d=await api('/games/blackjack/stand',{gameId:bjGameId});bal=d.newBalance;updateBal();gameInProgress=false;document.getElementById('bj-dealer').innerHTML=d.dealerCards.map(function(c){return cardEl(c);}).join('');document.getElementById('bj-deal').disabled=false;document.getElementById('bj-again').style.display='inline-flex';var cls=d.result==='win'?'win':d.result==='lose'?'lose':'';var msg=d.result==='win'?d.playerValue+' beats '+d.dealerValue+'! Won $'+fmt(d.payout):d.result==='push'?'Push — Refund $'+fmt(d.payout):d.playerValue>21?'Bust! Dealer had '+d.dealerValue:'Dealer wins '+d.dealerValue+' vs '+d.playerValue;setRes('bj-res',msg,cls);addHistory('blackjack',d.result,d.result==='win'?'+$'+fmt(d.payout):d.result==='lose'?'-$'+fmt(bjBet):'Push');}catch(e){notif(e.message,'err');document.getElementById('bj-hit').disabled=false;document.getElementById('bj-stand').disabled=false;}}
 
-// ── CRASH ──
-function resetCrash(){document.getElementById('cr-irow').style.display='flex';document.getElementById('cr-co').style.display='none';setRes('cr-res','Bet and wait for launch');var r=document.getElementById('crocket');r.textContent='🚀';r.style.transform='translateX(-50%) translateY(0)';document.getElementById('cr-trail').style.height='0';document.getElementById('cmult').style.color='#fff';crUserBet=0;crCashedOut=false;crBetting=false;crActive=false;}
-
+// ════════ CRASH ════════
+var crCanvas,crCtx,crPoints=[],crSf=null;
+function initCrashCanvas(){crCanvas=document.getElementById('crash-canvas');if(!crCanvas)return;crCtx=crCanvas.getContext('2d');var w=crCanvas.parentElement;crCanvas.width=w.clientWidth||600;crCanvas.height=w.clientHeight||280;}
+function drawCrashChart(){if(!crCtx||!crCanvas)return;var W=crCanvas.width,H=crCanvas.height,pad=40;crCtx.clearRect(0,0,W,H);if(crPoints.length<2)return;var maxT=crPoints[crPoints.length-1].t||1,maxM=Math.max(2,crPoints[crPoints.length-1].m+0.5);function tx(t){return pad+(t/maxT)*(W-pad*2);}function ty(m){return H-pad-(((m-1)/(maxM-1))*(H-pad*2));}crCtx.strokeStyle='rgba(255,255,255,.04)';crCtx.lineWidth=1;for(var m=1;m<=maxM;m+=Math.max(0.5,Math.floor((maxM-1)/4)*0.5)){crCtx.beginPath();crCtx.moveTo(pad,ty(m));crCtx.lineTo(W-pad,ty(m));crCtx.stroke();crCtx.fillStyle='rgba(255,255,255,.2)';crCtx.font='10px Inter';crCtx.fillText(m.toFixed(1)+'x',4,ty(m)+4);}var grad=crCtx.createLinearGradient(0,0,0,H);var crashed=crPoints[crPoints.length-1].crashed;grad.addColorStop(0,crashed?'rgba(239,68,68,.25)':'rgba(168,85,247,.25)');grad.addColorStop(1,'rgba(0,0,0,0)');crCtx.beginPath();crCtx.moveTo(tx(crPoints[0].t),ty(crPoints[0].m));for(var i=1;i<crPoints.length;i++)crCtx.lineTo(tx(crPoints[i].t),ty(crPoints[i].m));crCtx.lineTo(tx(crPoints[crPoints.length-1].t),H-pad);crCtx.lineTo(tx(crPoints[0].t),H-pad);crCtx.closePath();crCtx.fillStyle=grad;crCtx.fill();crCtx.beginPath();crCtx.moveTo(tx(crPoints[0].t),ty(crPoints[0].m));for(var i=1;i<crPoints.length;i++)crCtx.lineTo(tx(crPoints[i].t),ty(crPoints[i].m));crCtx.strokeStyle=crashed?'#f87171':'#a855f7';crCtx.lineWidth=2.5;crCtx.stroke();var last=crPoints[crPoints.length-1];var dot=document.getElementById('crash-dot');if(dot){dot.style.left=tx(last.t)+'px';dot.style.top=ty(last.m)+'px';dot.style.background=crashed?'#f87171':'#a855f7';dot.style.boxShadow=crashed?'0 0 12px #f87171':'0 0 12px #a855f7';}}
+function resetCrash(){document.getElementById('cr-irow').style.display='flex';document.getElementById('cr-co').style.display='none';setRes('cr-res','Bet and wait for round to start');document.getElementById('crash-mult-big').style.color='#fff';document.getElementById('crash-mult-big').textContent='1.00x';document.getElementById('crash-status').textContent='Waiting...';crPoints=[];crUserBet=0;crCashedOut=false;crBetting=false;crActive=false;if(crCtx&&crCanvas)crCtx.clearRect(0,0,crCanvas.width,crCanvas.height);}
 async function startBetting(){
-  crBetting=true;crActive=false;
-  crLaunch=Date.now()+15000;
-  var sf=await rotateServerSeed('crash');
-  crActiveSeed=sf.seed;
-  var hash=await sha256(sf.seed);
-  var num=parseInt(hash.substring(0,8),16);
-  if(forcedOutcome.crash){crCrashMult=Math.max(1.0,parseFloat(forcedOutcome.crash)||2.0);delete forcedOutcome.crash;}
-  else{crCrashMult=Math.max(1.0,(1e6/(num%1e6+1))*0.97);}
-  var crServerHashEl=document.getElementById('cr-server-hash');
-  if(crServerHashEl)crServerHashEl.textContent=hash.substring(0,32)+'...';
-  gfCrashHash(hash);
-  document.getElementById('cmult').textContent='1.00x';
-  document.getElementById('cmult').style.color='#fff';
-  var r=document.getElementById('crocket');r.textContent='🚀';r.style.transform='translateX(-50%) translateY(0)';
-  document.getElementById('cr-trail').style.height='0';
-  document.getElementById('ccount').textContent='Launch in 15s';
-  document.getElementById('cr-irow').style.display='flex';
-  updateSeedDisplay('crash');
-  tickCountdown();
-}
-function tickCountdown(){if(!crBetting)return;var rem=(crLaunch-Date.now())/1000;if(rem<=0){launch();return;}document.getElementById('ccount').textContent='Launch in '+Math.ceil(rem)+'s';requestAnimationFrame(tickCountdown);}
-function launch(){crBetting=false;crActive=true;crStart=Date.now();document.getElementById('ccount').textContent='';document.getElementById('cr-irow').style.display='none';if(crUserBet>0&&!crCashedOut)document.getElementById('cr-co').style.display='block';tickCrash();}
-function tickCrash(){
-  if(!crActive)return;
-  var el=(Date.now()-crStart)/1000;crCurMult=1+0.015*el;
-  document.getElementById('cmult').textContent=crCurMult.toFixed(2)+'x';
-  var r=document.getElementById('crocket');r.style.transform='translateX(-50%) translateY(-'+Math.min(el*44,230)+'px)';
-  document.getElementById('cr-trail').style.height=Math.min(el*44,230)+'px';
-  var t=Math.min(el/10,1);
-  document.getElementById('cmult').style.color='rgb('+Math.round(255*Math.min(t*2,1))+','+Math.round(255*Math.min(2-t*2,1))+',80)';
-  if(crCurMult>=crCrashMult){doCrash();return;}
-  requestAnimationFrame(tickCrash);
-}
-async function doCrash(){
-  crActive=false;
-  document.getElementById('cmult').style.color='#f87171';
-  var r=document.getElementById('crocket');r.textContent='💥';
-  document.getElementById('cr-trail').style.height='0';
-  var crashedAt=crCurMult.toFixed(2);
-  // Reveal the seed after crash via global panel
-  gfReveal('crash',crActiveSeed,seeds.crash.nonce);
-  // Auto-fill crash verify in panel
-  var gfCrv=document.getElementById('gf-crv-seed');
-  if(gfCrv)gfCrv.value=crActiveSeed;
-  // Update crash panel revealed seed display
-  var gfCrRev=document.getElementById('gf-crash-revealed');
-  if(gfCrRev){gfCrRev.textContent=crActiveSeed;gfCrRev.classList.remove('pending');}
-  // Remove stale old element refs (no longer in DOM)
-  if(crUserBet>0&&!crCashedOut){
-    setRes('cr-res','Crashed at '+crashedAt+'x — Lost $'+fmt(crUserBet),'lose');
-    addHistory('crash','lose','Crash '+crashedAt+'x -$'+fmt(crUserBet));
-    crUserBet=0;
-  }
-
-  document.getElementById('cr-co').style.display='none';
-  setTimeout(function(){
-    r.textContent='🚀';r.style.transform='translateX(-50%) translateY(0)';
-    document.getElementById('cr-trail').style.height='0';
-    document.getElementById('cmult').style.color='#fff';
-    setRes('cr-res','Crashed at '+crashedAt+'x — Next round starting...');
-    document.getElementById('cr-irow').style.display='flex';
-    setTimeout(startBetting,2500);
-  },2800);
-}
-function betCrash(){var amt=parse(document.getElementById('cr-bet').value);if(amt<=0||amt>bal||crUserBet>0){notif(crUserBet>0?'Already betting this round':'Invalid bet','err');return;}if(!crBetting&&!crActive){notif('Wait for next round','err');return;}saveBal(bal-amt);crUserBet=amt;crCashedOut=false;if(crActive)document.getElementById('cr-co').style.display='block';notif('Bet $'+fmt(amt)+' placed!','ok');}
-function cashCrash(){if(crUserBet<=0||crCashedOut||!crActive)return;crCashedOut=true;var p=crUserBet*crCurMult;saveBal(bal+p,true);setRes('cr-res','✅ Cashed out at '+crCurMult.toFixed(2)+'x — Won $'+fmt(p),'win');document.getElementById('cr-co').style.display='none';if(crSf)addHistory('crash','win','Cash '+crCurMult.toFixed(2)+'x +$'+fmt(p));crUserBet=0;notif('Cashed out! +$'+fmt(p),'ok');}
-
-// ── GLOBAL FAIRNESS PANEL ──
-var gfCurrentGame='mines';
-function toggleFairness(){var panel=document.getElementById('gf-panel'),btn=document.getElementById('gf-btn');var isOpen=panel.classList.contains('open');if(isOpen){panel.classList.remove('open');btn.classList.remove('open');}else{panel.classList.add('open');btn.classList.add('open');}}
-function closeFairness(){var panel=document.getElementById('gf-panel'),btn=document.getElementById('gf-btn');if(panel)panel.classList.remove('open');if(btn)btn.classList.remove('open');}
-function gfTab(game){gfCurrentGame=game;document.querySelectorAll('.gf-gtab').forEach(function(t){t.classList.remove('on');});document.querySelectorAll('.gf-game-content').forEach(function(c){c.classList.remove('visible');});var tb=document.getElementById('gft-'+game),ct=document.getElementById('gfc-'+game);if(tb)tb.classList.add('on');if(ct)ct.classList.add('visible');}
-async function gfVerifyMines(){var seed=document.getElementById('gf-mv-seed').value.trim();var client=document.getElementById('gf-mv-client').value.trim();var nonce=document.getElementById('gf-mv-nonce').value.trim();var out=document.getElementById('gf-mv-out');if(!seed||!client){out.style.display='block';out.className='gf-vresult fail';out.textContent='Enter server seed and client seed.';return;}var hash=await sha256(seed+':'+client+':'+(nonce||0));var minePositions=[];for(var i=0;i<hash.length-1&&minePositions.length<5;i+=2){var pos=parseInt(hash.substring(i,i+2),16)%25;if(minePositions.indexOf(pos)===-1)minePositions.push(pos);}out.style.display='block';out.className='gf-vresult ok';out.textContent='Hash: '+hash.substring(0,24)+'...\nMine cells (0-24): ['+minePositions.join(', ')+']';}
-async function gfVerifyDice(){var seed=document.getElementById('gf-dv-seed').value.trim();var client=document.getElementById('gf-dv-client').value.trim();var nonce=document.getElementById('gf-dv-nonce').value.trim();var out=document.getElementById('gf-dv-out');if(!seed||!client){out.style.display='block';out.className='gf-vresult fail';out.textContent='Enter server seed and client seed.';return;}var hash=await sha256(seed+':'+client+':'+(nonce||0));var d1=parseInt(hash.substring(0,8),16)%6+1;var d2=parseInt(hash.substring(8,16),16)%6+1;out.style.display='block';out.className='gf-vresult ok';out.textContent='Die 1: '+d1+', Die 2: '+d2+', Sum: '+(d1+d2)+'\nHash: '+hash.substring(0,24)+'...';}
-async function gfVerifyTowers(){var seed=document.getElementById('gf-tv-seed').value.trim();var client=document.getElementById('gf-tv-client').value.trim();var nonce=document.getElementById('gf-tv-nonce').value.trim();var out=document.getElementById('gf-tv-out');if(!seed||!client){out.style.display='block';out.className='gf-vresult fail';out.textContent='Enter server seed and client seed.';return;}var skulls=[];for(var row=0;row<5;row++){var hash=await sha256(seed+':'+client+':'+(nonce||0)+':'+row);skulls.push(parseInt(hash.substring(0,8),16)%3);}out.style.display='block';out.className='gf-vresult ok';out.textContent='Skull positions (0=L,1=M,2=R):\n['+skulls.join(', ')+']';}
-async function gfVerifyCrash(){var seed=document.getElementById('gf-crv-seed').value.trim();var out=document.getElementById('gf-crv-out');if(!seed){out.style.display='block';out.className='gf-vresult fail';out.textContent='Enter revealed server seed.';return;}var hash=await sha256(seed);var num=parseInt(hash.substring(0,8),16);var crashPoint=Math.max(1.0,(1e6/(num%1e6+1))*0.97).toFixed(2);out.style.display='block';out.className='gf-vresult ok';out.textContent='Crash point: '+crashPoint+'x\nHash: '+hash.substring(0,24)+'...';}
-function gfCrashHash(hash){var el=document.getElementById('gf-crash-hash');if(el){el.textContent=hash.substring(0,32)+'...';el.classList.remove('pending');}}
-document.addEventListener('click',function(e){var btn=document.getElementById('gf-btn'),panel=document.getElementById('gf-panel');if(btn&&panel&&!btn.contains(e.target)&&!panel.contains(e.target)){closeFairness();}});
-
-// ── NOTES/SYSTEM TAB FUNCTIONS ──
-async function renameUser(){var oldU=document.getElementById('rename-old').value.trim();var newU=document.getElementById('rename-new').value.trim();if(!oldU||!newU){notif('Fill both fields','err');return;}if(['burst','metech'].indexOf(oldU)>=0){notif('Cannot rename admin','err');return;}if(!/^[a-zA-Z0-9_]+$/.test(newU)){notif('New name: letters, numbers, _ only','err');return;}var s=await fsGet('users',oldU);if(!s.exists){notif('User not found','err');return;}var ex=await fsGet('users',newU);if(ex.exists){notif('New username already taken','err');return;}await fsSet('users',newU,s.data());await fsDelete('users',oldU);await fsAdd('adminLogs',{type:'rename',user:oldU,newName:newU,by:CU,time:new Date().toISOString()});notif('Renamed '+oldU+' → '+newU,'ok');}
-async function forceLogout(){var user=document.getElementById('flogout-user').value.trim();if(!user){notif('Enter a username','err');return;}if(['burst','metech'].indexOf(user)>=0){notif('Cannot force logout an admin','err');return;}await fsUpdate('users',user,{forceLogout:true});await fsAdd('adminLogs',{type:'forceLogout',user:user,by:CU,time:new Date().toISOString()});notif('Force logout set for '+user,'ok');}
-async function userStats(){var user=document.getElementById('stats-user').value.trim();var out=document.getElementById('user-stats-out');if(!user){out.style.display='none';notif('Enter a username','err');return;}out.style.display='block';out.textContent='Loading...';var s=await fsGet('users',user);if(!s.exists){out.textContent='User not found.';return;}var d=s.data();out.innerHTML='<b style="color:#f59e0b">'+user+'</b><br>Edition: '+d.edition+'<br>Balance: $'+fmt(d.balance||0)+'<br>Wins: '+(d.wins||0)+'<br>Banned: '+(d.banned?'<span style="color:#f87171">YES</span>':'No');}
-async function loadAdminLogs(){var filterUser=document.getElementById('log-filter-user').value.trim().toLowerCase();var filterType=document.getElementById('log-filter-type').value;var out=document.getElementById('admin-logs-out');out.style.display='block';out.textContent='Loading...';var logs=await fsList('adminLogs',200);if(!logs.length){out.textContent='No logs.';return;}var filtered=logs.filter(function(l){var d=l.data();if(filterUser&&!(d.user||'').toLowerCase().includes(filterUser))return false;if(filterType&&d.type!==filterType)return false;return true;});out.innerHTML=filtered.slice(0,50).map(function(l){var d=l.data();var time=d.time?new Date(d.time).toLocaleString():'—';return'<div style="border-bottom:1px solid rgba(255,255,255,.05);padding:3px 0"><span style="color:#f59e0b">['+time+']</span> <span style="color:#c084fc">['+( d.type||'?')+']</span> <span style="color:#e2e8f0">'+(d.user||'—')+'</span>'+(d.amount?' <span style="color:#34d399">$'+fmt(d.amount)+'</span>':'')+(d.by?' <span style="color:var(--muted2)"> by '+d.by+'</span>':'')+'</div>';}).join('');}
-async function loadActivitySummary(){var out=document.getElementById('activity-sum-out');out.textContent='Loading...';var logs=await fsList('adminLogs',500);var users=await fsList('users',200);var totalBal=0,totalWins=0;users.forEach(function(u){var d=u.data();totalBal+=(d.balance||0);totalWins+=(d.wins||0);});var typeCounts={};logs.forEach(function(l){var t=l.data().type||'unknown';typeCounts[t]=(typeCounts[t]||0)+1;});var lines=['Users: '+users.length,'Total balance: $'+fmt(totalBal),'Total wins: '+totalWins,'Log entries: '+logs.length];for(var t in typeCounts)lines.push('['+t+']: '+typeCounts[t]);out.innerHTML=lines.map(function(l){return'<div>'+l+'</div>';}).join('');}
-async function searchLogs(){var kw=document.getElementById('log-search-kw').value.trim().toLowerCase();var out=document.getElementById('log-search-out');if(!kw){out.style.display='block';out.textContent='Enter a keyword.';return;}out.style.display='block';out.textContent='Searching...';var logs=await fsList('adminLogs',500);var matches=logs.filter(function(l){return JSON.stringify(l.data()).toLowerCase().includes(kw);});if(!matches.length){out.textContent='No matches.';return;}out.innerHTML=matches.slice(0,30).map(function(l){var d=l.data();return'<div style="border-bottom:1px solid rgba(255,255,255,.05);padding:2px 0"><span style="color:#94a3b8">'+JSON.stringify(d).substring(0,120)+'</span></div>';}).join('');}
-async function loadUserNote(){var user=document.getElementById('note-user').value.trim();var status=document.getElementById('note-status');if(!user){status.textContent='Enter a username.';return;}var s=await fsGet('userNotes',user);if(s.exists){document.getElementById('note-content').value=s.data().note||'';status.textContent='Note loaded for '+user;}else{document.getElementById('note-content').value='';status.textContent='No note for '+user;}}
-async function saveUserNote(){var user=document.getElementById('note-user').value.trim();var note=document.getElementById('note-content').value;var status=document.getElementById('note-status');if(!user){status.textContent='Enter a username.';return;}await fsSet('userNotes',user,{note:note,updatedBy:CU,updatedAt:new Date().toISOString()});await fsAdd('adminLogs',{type:'note',user:user,by:CU,time:new Date().toISOString()});status.style.color='#34d399';status.textContent='✓ Note saved';setTimeout(function(){status.style.color='';},3000);}
-async function deleteUserNote(){var user=document.getElementById('note-user').value.trim();var status=document.getElementById('note-status');if(!user){status.textContent='Enter a username.';return;}await fsDelete('userNotes',user);document.getElementById('note-content').value='';status.style.color='#f87171';status.textContent='Deleted';setTimeout(function(){status.style.color='';},3000);}
-async function listAllNotes(){var out=document.getElementById('all-notes-out');out.style.display='block';var notes=await fsList('userNotes',100);if(!notes.length){out.textContent='No notes saved.';return;}out.innerHTML=notes.map(function(n){var d=n.data();return'<div style="border-bottom:1px solid rgba(255,255,255,.05);padding:2px 0"><span style="color:#c084fc">'+n.id+'</span>: <span style="color:#e2e8f0">'+(d.note||'').substring(0,80)+'</span></div>';}).join('');}
-async function loadSharedNotepad(){var s=await fsGet('config','adminNotepad');document.getElementById('shared-notepad').value=s.exists?(s.data().content||''):'';}
-async function saveSharedNotepad(){var content=document.getElementById('shared-notepad').value;await fsSet('config','adminNotepad',{content:content,updatedBy:CU,updatedAt:new Date().toISOString()});notif('Notepad saved!','ok');}
-async function sendAlertAll(){var msg=document.getElementById('alert-msg').value.trim();if(!msg){notif('Enter a message','err');return;}await fsSet('config','globalAlert',{text:msg,active:true,by:CU,time:new Date().toISOString()});notif('Alert sent!','ok');}
-async function backupConfig(){try{var blob=new Blob([JSON.stringify({timestamp:new Date().toISOString(),by:CU},null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='donutdrop_backup_'+Date.now()+'.json';a.click();notif('Backup downloaded!','ok');}catch(e){notif('Backup failed','err');}}
-
-// ── INIT ──
-window.addEventListener('load',async function(){
-  // Always ensure admin accounts exist in Firestore
-  var adminList=[
-    {id:'burst',pw:'123burst123',bal:1000000},
-    {id:'metech',pw:'123metech123',bal:1000000}
-  ];
-  for(var i=0;i<adminList.length;i++){
-    try{
-      var a=adminList[i];
-      var as=await fsGet('users',a.id);
-      if(!as.exists){
-        await fsSet('users',a.id,{balance:a.bal,wins:0,edition:'Java',password:a.pw,banned:false});
-      } else {
-        // Always keep password in sync
-        await fsUpdate('users',a.id,{password:a.pw});
-      }
-    }catch(e){}
-  }
-  // Check for saved session
-  var su=null,se=null;
-  try{su=localStorage.getItem('cu');se=localStorage.getItem('ce');}catch(e){}
-  if(su&&se){
-    CU=su;CE=se;
-    var s=await fsGet('users',CU);
-    if(s.exists&&!s.data().banned){
-      isAdmin=(ADMINS.indexOf(CU)>=0&&CE==='Java');
-      document.getElementById('u-name').textContent=CU;
-      document.getElementById('u-ed').textContent=CE;
-      await loadUser();addAdminBtn();go('dashboard');
-    }else{
-      try{localStorage.removeItem('cu');localStorage.removeItem('ce');}catch(e){}
-      await initSeeds();
-    }
-  }else{await initSeeds();}
-});
-document.addEventListener('keypress',function(e){
-  if(e.key!=='Enter'||CS!=='login')return;
-  document.getElementById('signup-form').style.display!=='none'?doSignup():doLogin();
-});
-
-// ═══════════════════════════════════════════
-// CRASH - NEW CHART VERSION
-// ═══════════════════════════════════════════
-var crCanvas,crCtx,crPoints=[],crAnimId=null;
-function initCrashCanvas(){
-  crCanvas=document.getElementById('crash-canvas');
-  if(!crCanvas)return;
-  crCtx=crCanvas.getContext('2d');
-  var wrap=crCanvas.parentElement;
-  crCanvas.width=wrap.clientWidth||600;
-  crCanvas.height=wrap.clientHeight||280;
-}
-function drawCrashChart(){
-  if(!crCtx||!crCanvas)return;
-  var W=crCanvas.width,H=crCanvas.height,pad=40;
-  crCtx.clearRect(0,0,W,H);
-  if(crPoints.length<2)return;
-  var maxT=crPoints[crPoints.length-1].t||1;
-  var maxM=Math.max(2,crPoints[crPoints.length-1].m+0.5);
-  function tx(t){return pad+(t/maxT)*(W-pad*2);}
-  function ty(m){return H-pad-(((m-1)/(maxM-1))*(H-pad*2));}
-  // Grid lines
-  crCtx.strokeStyle='rgba(255,255,255,.04)';crCtx.lineWidth=1;
-  for(var m=1;m<=maxM;m+=Math.max(0.5,Math.floor((maxM-1)/4)*0.5)){
-    crCtx.beginPath();crCtx.moveTo(pad,ty(m));crCtx.lineTo(W-pad,ty(m));crCtx.stroke();
-    crCtx.fillStyle='rgba(255,255,255,.2)';crCtx.font='10px Inter';crCtx.fillText(m.toFixed(1)+'x',4,ty(m)+4);
-  }
-  // Gradient fill
-  var grad=crCtx.createLinearGradient(0,0,0,H);
-  var crashed=crPoints[crPoints.length-1].crashed;
-  grad.addColorStop(0,crashed?'rgba(239,68,68,.25)':'rgba(168,85,247,.25)');
-  grad.addColorStop(1,'rgba(0,0,0,0)');
-  crCtx.beginPath();crCtx.moveTo(tx(crPoints[0].t),ty(crPoints[0].m));
-  for(var i=1;i<crPoints.length;i++)crCtx.lineTo(tx(crPoints[i].t),ty(crPoints[i].m));
-  crCtx.lineTo(tx(crPoints[crPoints.length-1].t),H-pad);
-  crCtx.lineTo(tx(crPoints[0].t),H-pad);crCtx.closePath();
-  crCtx.fillStyle=grad;crCtx.fill();
-  // Line
-  crCtx.beginPath();crCtx.moveTo(tx(crPoints[0].t),ty(crPoints[0].m));
-  for(var i=1;i<crPoints.length;i++)crCtx.lineTo(tx(crPoints[i].t),ty(crPoints[i].m));
-  crCtx.strokeStyle=crashed?'#f87171':'#a855f7';crCtx.lineWidth=2.5;crCtx.stroke();
-  // Dot
-  var last=crPoints[crPoints.length-1];
-  var dot=document.getElementById('crash-dot');
-  if(dot){
-    dot.style.left=tx(last.t)+'px';dot.style.top=ty(last.m)+'px';
-    dot.style.background=crashed?'#f87171':'#a855f7';
-    dot.style.boxShadow=crashed?'0 0 12px #f87171':'0 0 12px #a855f7,0 0 24px rgba(168,85,247,.5)';
-  }
-}
-function resetCrash(){
-  document.getElementById('cr-irow').style.display='flex';
-  document.getElementById('cr-co').style.display='none';
-  setRes('cr-res','Bet and wait for round to start');
-  document.getElementById('crash-mult-big').style.color='#fff';
-  document.getElementById('crash-mult-big').textContent='1.00x';
-  document.getElementById('crash-status').textContent='Waiting...';
-  crPoints=[];crUserBet=0;crCashedOut=false;crBetting=false;crActive=false;
-  if(crCtx&&crCanvas)crCtx.clearRect(0,0,crCanvas.width,crCanvas.height);
-  var dot=document.getElementById('crash-dot');if(dot){dot.style.left='50%';dot.style.top='80%';}
-}
-async function startBetting(){
-  initCrashCanvas();
   crBetting=true;crActive=false;crPoints=[];
-  crLaunch=Date.now()+12000;
-  var sf=await rotateServerSeed('crash');crSf=sf;
-  var hash=await sha256(sf.seed);var num=parseInt(hash.substring(0,8),16);
-  if(forcedOutcome&&forcedOutcome.crash){crCrashMult=Math.max(1.01,parseFloat(forcedOutcome.crash)||2);delete forcedOutcome.crash;}
-  else{crCrashMult=Math.max(1.01,(1e6/(num%1e6+1))*0.97);}
-  var hashEl=document.getElementById('gf-crash-hash');
-  if(hashEl){hashEl.textContent=hash.substring(0,28)+'...';hashEl.classList.remove('pending');}
-  document.getElementById('crash-mult-big').textContent='1.00x';
-  document.getElementById('crash-mult-big').style.color='#fff';
-  document.getElementById('crash-status').textContent='Starting in 12s...';
-  document.getElementById('cr-irow').style.display='flex';
-  var gcl=document.getElementById('gf-crash-client');if(gcl)gcl.textContent=seeds.crash.client;
+  try{var d=await api('/games/crash/round');crLaunch=Date.now()+(d.countdown||15000);var hashEl=document.getElementById('gf-crash-hash');if(hashEl){hashEl.textContent=d.serverSeedHash.substring(0,28)+'...';hashEl.classList.remove('pending');}document.getElementById('crash-mult-big').textContent='1.00x';document.getElementById('crash-mult-big').style.color='#fff';document.getElementById('crash-status').textContent='Starting soon...';document.getElementById('cr-irow').style.display='flex';}catch(e){}
   tickCountdown();
 }
-function tickCountdown(){
-  if(!crBetting)return;
-  var rem=(crLaunch-Date.now())/1000;
-  if(rem<=0){launch();return;}
-  document.getElementById('crash-status').textContent='Starting in '+Math.ceil(rem)+'s...';
-  requestAnimationFrame(tickCountdown);
-}
-function launch(){
-  crBetting=false;crActive=true;crStart=Date.now();
-  document.getElementById('crash-status').textContent='LIVE';
-  document.getElementById('cr-irow').style.display='none';
-  if(crUserBet>0&&!crCashedOut)document.getElementById('cr-co').style.display='block';
-  tickCrash();
-}
-function tickCrash(){
+function tickCountdown(){if(!crBetting)return;var rem=(crLaunch-Date.now())/1000;if(rem<=0){launch();return;}document.getElementById('crash-status').textContent='Starting in '+Math.ceil(rem)+'s...';requestAnimationFrame(tickCountdown);}
+function launch(){crBetting=false;crActive=true;crStart=Date.now();document.getElementById('crash-status').textContent='LIVE';document.getElementById('cr-irow').style.display='none';if(crUserBet>0&&!crCashedOut)document.getElementById('cr-co').style.display='block';tickCrash();}
+function tickCrash(){if(!crActive)return;var el=(Date.now()-crStart)/1000;crCurMult=Math.pow(Math.E,el*0.12);crPoints.push({t:el,m:crCurMult,crashed:false});if(crPoints.length>300)crPoints.shift();document.getElementById('crash-mult-big').textContent=crCurMult.toFixed(2)+'x';var t=Math.min(el/6,1);document.getElementById('crash-mult-big').style.color='rgb('+Math.round(255*Math.min(t*2,1))+','+Math.round(255*Math.max(1-t*1.5,0))+',80)';drawCrashChart();requestAnimationFrame(tickCrash);}
+// Poll server to detect crash
+setInterval(async function(){
   if(!crActive)return;
-  var el=(Date.now()-crStart)/1000;
-  crCurMult=Math.pow(Math.E,el*0.12);
-  crPoints.push({t:el,m:crCurMult,crashed:false});
-  if(crPoints.length>300)crPoints.shift();
-  document.getElementById('crash-mult-big').textContent=crCurMult.toFixed(2)+'x';
-  var t=Math.min(el/6,1);
-  document.getElementById('crash-mult-big').style.color='rgb('+Math.round(255*Math.min(t*2,1))+','+Math.round(255*Math.max(1-t*1.5,0))+',80)';
-  drawCrashChart();
-  if(crCurMult>=crCrashMult){doCrash();return;}
-  crAnimId=requestAnimationFrame(tickCrash);
-}
-function doCrash(){
-  crActive=false;
-  crPoints.push({t:(Date.now()-crStart)/1000,m:crCurMult,crashed:true});
-  drawCrashChart();
-  document.getElementById('crash-mult-big').style.color='#f87171';
-  document.getElementById('crash-status').textContent='CRASHED @ '+crCurMult.toFixed(2)+'x';
-  var crashedAt=crCurMult.toFixed(2);
-  if(crSf){gfReveal('crash',crSf.seed,crSf.nonce);if(crUserBet>0&&!crCashedOut)addHistory('crash','lose','Crash '+crashedAt+'x -$'+fmt(crUserBet));}
-  if(crUserBet>0&&!crCashedOut){setRes('cr-res','💥 Crashed at '+crashedAt+'x — Lost $'+fmt(crUserBet),'lose');crUserBet=0;}
-  else setRes('cr-res','💥 Crashed at '+crashedAt+'x');
-  document.getElementById('cr-co').style.display='none';
-  setTimeout(function(){
-    document.getElementById('crash-mult-big').style.color='#fff';
-    setRes('cr-res','Crashed at '+crashedAt+'x — Next round in 5s...');
-    document.getElementById('cr-irow').style.display='flex';
-    setTimeout(startBetting,5000);
-  },3000);
-}
-function betCrash(){var amt=parse(document.getElementById('cr-bet').value);if(amt<=0||amt>bal||crUserBet>0){notif(crUserBet>0?'Already betting this round':'Invalid bet','err');return;}if(!crBetting&&!crActive){notif('Wait for next round','err');return;}saveBal(bal-amt);crUserBet=amt;crCashedOut=false;if(crActive)document.getElementById('cr-co').style.display='block';notif('Bet $'+fmt(amt)+' placed!','ok');}
-function cashCrash(){if(crUserBet<=0||crCashedOut||!crActive)return;crCashedOut=true;var p=crUserBet*crCurMult;saveBal(bal+p,true);setRes('cr-res','✅ Cashed out at '+crCurMult.toFixed(2)+'x — Won $'+fmt(p),'win');document.getElementById('cr-co').style.display='none';if(crSf)addHistory('crash','win','Cash '+crCurMult.toFixed(2)+'x +$'+fmt(p));crUserBet=0;notif('💰 Cashed out! +$'+fmt(p),'ok');}
+  try{var d=await api('/games/crash/round');if(!d.betting&&!d.active){doCrash();}}catch(e){}
+},500);
+async function doCrash(){crActive=false;crPoints.push({t:(Date.now()-crStart)/1000,m:crCurMult,crashed:true});drawCrashChart();document.getElementById('crash-mult-big').style.color='#f87171';var crashedAt=crCurMult.toFixed(2);document.getElementById('crash-status').textContent='CRASHED @ '+crashedAt+'x';try{var d=await api('/games/crash/result',{});if(d.revealedSeed){gfReveal('crash',d.revealedSeed,null);var gfCrv=document.getElementById('gf-crv-seed');if(gfCrv)gfCrv.value=d.revealedSeed;}}catch(e){}if(crUserBet>0&&!crCashedOut){setRes('cr-res','💥 Crashed at '+crashedAt+'x — Lost $'+fmt(crUserBet),'lose');addHistory('crash','lose','Crash '+crashedAt+'x -$'+fmt(crUserBet));crUserBet=0;}else setRes('cr-res','💥 Crashed at '+crashedAt+'x');document.getElementById('cr-co').style.display='none';setTimeout(function(){document.getElementById('crash-mult-big').style.color='#fff';setRes('cr-res','Crashed at '+crashedAt+'x — Next round in 5s...');document.getElementById('cr-irow').style.display='flex';setTimeout(startBetting,5000);},3000);}
+async function betCrash(){var amt=parse(document.getElementById('cr-bet').value);if(amt<=0||amt>bal||crUserBet>0){notif(crUserBet>0?'Already betting this round':'Invalid bet','err');return;}if(!crBetting&&!crActive){notif('Wait for next round','err');return;}try{var d=await api('/games/crash/bet',{amount:amt});bal=d.newBalance;updateBal();crUserBet=amt;crCashedOut=false;if(crActive)document.getElementById('cr-co').style.display='block';notif('Bet $'+fmt(amt)+' placed!','ok');}catch(e){notif(e.message,'err');}}
+async function cashCrash(){if(crUserBet<=0||crCashedOut||!crActive)return;crCashedOut=true;try{var d=await api('/games/crash/cashout',{multiplier:crCurMult});bal=d.newBalance;updateBal();setRes('cr-res','✅ Cashed out at '+d.multiplier.toFixed(2)+'x — Won $'+fmt(d.payout),'win');document.getElementById('cr-co').style.display='none';addHistory('crash','win','Cash '+d.multiplier.toFixed(2)+'x +$'+fmt(d.payout));crUserBet=0;notif('💰 +$'+fmt(d.payout),'ok');}catch(e){notif(e.message,'err');crCashedOut=false;}}
 
-// ═══════════════════════════════════════════
-// PLINKO
-// ═══════════════════════════════════════════
-var PLINKO_ROWS=12;
-var PLINKO_MULTIPLIERS={
-  low:[5.6,2.1,1.1,1,0.5,0.3,0.5,1,1.1,2.1,5.6],
-  med:[13,3,1.3,0.7,0.4,0.3,0.4,0.7,1.3,3,13],
-  high:[29,4,1.5,0.3,0.2,0.2,0.2,0.3,1.5,4,29]
-};
-var PLINKO_COLORS={
-  low:['#f59e0b','#10b981','#06b6d4','#6366f1','#8b5cf6','#a855f7','#8b5cf6','#6366f1','#06b6d4','#10b981','#f59e0b'],
-  med:['#ef4444','#f59e0b','#10b981','#06b6d4','#6366f1','#8b5cf6','#6366f1','#06b6d4','#10b981','#f59e0b','#ef4444'],
-  high:['#ef4444','#ef4444','#f59e0b','#10b981','#6366f1','#8b5cf6','#6366f1','#10b981','#f59e0b','#ef4444','#ef4444']
-};
+// ════════ PLINKO ════════
+var PLINKO_ROWS=12,PLINKO_MULTIPLIERS={low:[5.6,2.1,1.1,1,0.5,0.3,0.5,1,1.1,2.1,5.6],med:[13,3,1.3,0.7,0.4,0.3,0.4,0.7,1.3,3,13],high:[29,4,1.5,0.3,0.2,0.2,0.2,0.3,1.5,4,29]},PLINKO_COLORS={low:['#f59e0b','#10b981','#06b6d4','#6366f1','#8b5cf6','#a855f7','#8b5cf6','#6366f1','#06b6d4','#10b981','#f59e0b'],med:['#ef4444','#f59e0b','#10b981','#06b6d4','#6366f1','#8b5cf6','#6366f1','#06b6d4','#10b981','#f59e0b','#ef4444'],high:['#ef4444','#ef4444','#f59e0b','#10b981','#6366f1','#8b5cf6','#6366f1','#10b981','#f59e0b','#ef4444','#ef4444']};
 var plRisk='low',plDropping=false;
-
-function setPlinkRisk(r){
-  plRisk=r;
-  ['low','med','high'].forEach(function(x){document.getElementById('prisk-'+x).classList.toggle('on',x===r);});
-  renderPlinkoBuckets();
-}
-
-function renderPlinkoBuckets(){
-  var mults=PLINKO_MULTIPLIERS[plRisk];
-  var colors=PLINKO_COLORS[plRisk];
-  var el=document.getElementById('plinko-buckets');if(!el)return;
-  el.innerHTML=mults.map(function(m,i){
-    return'<div class="plinko-bucket" style="background:'+colors[i]+'22;border-color:'+colors[i]+'66;color:'+colors[i]+'">'+m+'x</div>';
-  }).join('');
-}
-
-function drawPlinkoBoard(){
-  var canvas=document.getElementById('plinko-canvas');if(!canvas)return;
-  var ctx=canvas.getContext('2d');
-  var W=canvas.width,H=canvas.height;
-  ctx.clearRect(0,0,W,H);
-  var rows=PLINKO_ROWS,cols=rows+1;
-  for(var r=1;r<=rows;r++){
-    var numPegs=r+1;
-    for(var c=0;c<numPegs;c++){
-      var x=W/2+(c-(numPegs-1)/2)*(W/(rows+1));
-      var y=(r/(rows+2))*H*0.85+20;
-      ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);
-      ctx.fillStyle='rgba(168,85,247,0.7)';ctx.fill();
-      ctx.fillStyle='rgba(255,255,255,0.4)';
-      ctx.beginPath();ctx.arc(x-1,y-1,1.5,0,Math.PI*2);ctx.fill();
-    }
-  }
-}
-
+function setPlinkRisk(r){plRisk=r;['low','med','high'].forEach(function(x){document.getElementById('prisk-'+x).classList.toggle('on',x===r);});renderPlinkoBuckets();}
+function renderPlinkoBuckets(){var mults=PLINKO_MULTIPLIERS[plRisk],colors=PLINKO_COLORS[plRisk],el=document.getElementById('plinko-buckets');if(!el)return;el.innerHTML=mults.map(function(m,i){return'<div class="plinko-bucket" style="background:'+colors[i]+'22;border-color:'+colors[i]+'66;color:'+colors[i]+'">'+m+'x</div>';}).join('');}
+function drawPlinkoBoard(){var canvas=document.getElementById('plinko-canvas');if(!canvas)return;var ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height,rows=PLINKO_ROWS;ctx.clearRect(0,0,W,H);for(var r=1;r<=rows;r++){var numPegs=r+1;for(var c=0;c<numPegs;c++){var x=W/2+(c-(numPegs-1)/2)*(W/(rows+1)),y=(r/(rows+2))*H*0.85+20;ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fillStyle='rgba(168,85,247,0.7)';ctx.fill();}}}
 async function dropPlinko(){
   if(plDropping){notif('Ball still dropping!','err');return;}
-  var bet=parse(document.getElementById('pl-bet').value);
-  if(bet<=0||bet>bal){notif('Invalid bet','err');return;}
-  saveBal(bal-bet);plDropping=true;
-  var canvas=document.getElementById('plinko-canvas');
-  if(!canvas){plDropping=false;return;}
-  var ctx=canvas.getContext('2d');
-  var W=canvas.width,H=canvas.height;
-  var rows=PLINKO_ROWS;
-  // Generate path using SHA256
-  var sf=await rotateServerSeed('mines');
-  var hash=await sha256(sf.seed+':'+seeds.mines.client+':'+sf.nonce);
-  var path=[];
-  for(var i=0;i<rows;i++){
-    path.push(parseInt(hash.substr(i*2,2),16)%2);
-  }
-  // Animate ball
-  var slot=0;
-  for(var i=0;i<path.length;i++)slot+=path[i];
-  var ballX=W/2,ballY=20;
-  var targetSlot=slot;
-  var step=0;
-  var dirArr=path;
-  function animStep(){
-    drawPlinkoBoard();
-    // Draw ball
-    ctx.beginPath();ctx.arc(ballX,ballY,7,0,Math.PI*2);
-    var grad=ctx.createRadialGradient(ballX-2,ballY-2,1,ballX,ballY,7);
-    grad.addColorStop(0,'#fff');grad.addColorStop(1,'#f59e0b');
-    ctx.fillStyle=grad;ctx.fill();
-    ctx.strokeStyle='rgba(245,158,11,.8)';ctx.lineWidth=1.5;ctx.stroke();
-    if(step<rows){
-      var numPegs=step+2;
-      var targetX=W/2+(((step>0?dirArr.slice(0,step+1).reduce(function(a,b){return a+b;},0):0))-((step+1)/2))*(W/(rows+1));
-      var targetY=((step+2)/(rows+2))*H*0.85+20;
-      ballX+=(targetX-ballX)*0.25;
-      ballY+=(targetY-ballY)*0.25;
-      if(Math.abs(ballY-targetY)<2)step++;
-      requestAnimationFrame(animStep);
-    }else{
-      // Land in bucket
-      var mults=PLINKO_MULTIPLIERS[plRisk];
-      var mult=mults[Math.min(targetSlot,mults.length-1)];
-      var win=bet*mult;
-      saveBal(bal+win,mult>1);
-      setRes('pl-res',(mult>1?'🎉':'💸')+' Landed on '+mult+'x — '+(mult>1?'Won':'Lost')+' $'+fmt(win),mult>=1?'win':'lose');
-      plDropping=false;
-      // Highlight bucket
-      var buckets=document.querySelectorAll('.plinko-bucket');
-      if(buckets[targetSlot]){buckets[targetSlot].style.transform='scale(1.2)';buckets[targetSlot].style.boxShadow='0 0 20px currentColor';setTimeout(function(){if(buckets[targetSlot]){buckets[targetSlot].style.transform='';buckets[targetSlot].style.boxShadow='';}},1000);}
-    }
-  }
-  requestAnimationFrame(animStep);
+  var bet=parse(document.getElementById('pl-bet').value);if(bet<=0||bet>bal){notif('Invalid bet','err');return;}
+  plDropping=true;
+  try{
+    var d=await api('/games/plinko/drop',{bet,risk:plRisk,clientSeed:clientSeeds.plinko});
+    bal=d.newBalance;updateBal();
+    var canvas=document.getElementById('plinko-canvas');if(!canvas){plDropping=false;return;}
+    var ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height,rows=PLINKO_ROWS;
+    var targetSlot=d.slot,ballX=W/2,ballY=20,step=0;
+    var mults=PLINKO_MULTIPLIERS[plRisk],mult=d.multiplier;
+    // Animate ball path based on slot
+    var path=[];var s=targetSlot,remaining=rows;while(remaining-->0){if(s>0&&(s===rows||Math.random()<0.5)){path.push(1);s--;}else{path.push(0);}}
+    function animStep(){drawPlinkoBoard();ctx.beginPath();ctx.arc(ballX,ballY,7,0,Math.PI*2);var grad=ctx.createRadialGradient(ballX-2,ballY-2,1,ballX,ballY,7);grad.addColorStop(0,'#fff');grad.addColorStop(1,'#f59e0b');ctx.fillStyle=grad;ctx.fill();if(step<rows){var numPegs=step+2,targetX=W/2+(((step>0?path.slice(0,step+1).reduce(function(a,b){return a+b;},0):0))-((step+1)/2))*(W/(rows+1)),targetY=((step+2)/(rows+2))*H*0.85+20;ballX+=(targetX-ballX)*0.25;ballY+=(targetY-ballY)*0.25;if(Math.abs(ballY-targetY)<2)step++;requestAnimationFrame(animStep);}else{setRes('pl-res',(mult>1?'🎉':'💸')+' '+mult+'x — '+(mult>1?'Won':'Lost')+' $'+fmt(d.payout),mult>=1?'win':'lose');addHistory('plinko',mult>1?'win':'lose',mult+'x',d.revealedSeed,d.nonce);plDropping=false;var buckets=document.querySelectorAll('.plinko-bucket');if(buckets[targetSlot]){buckets[targetSlot].style.transform='scale(1.2)';buckets[targetSlot].style.boxShadow='0 0 20px currentColor';setTimeout(function(){if(buckets[targetSlot]){buckets[targetSlot].style.transform='';buckets[targetSlot].style.boxShadow='';}},1000);}}}
+    requestAnimationFrame(animStep);
+  }catch(e){notif(e.message,'err');plDropping=false;}
 }
 
-// ═══════════════════════════════════════════
-
-
-
-// ═══════════════════════════════════════════
-// GO FUNCTION UPDATE - handle new games
-// ═══════════════════════════════════════════
-var _origGo=go;
-go=function(screen){
-  _origGo(screen);
-  if(screen==='plinko'){
-    drawPlinkoBoard();renderPlinkoBuckets();
-    var el=document.getElementById('bal-pl');if(el)el.textContent=fmt(bal);
-  }
-  if(screen==='keno'){initKenoGrid();var el=document.getElementById('bal-kn');if(el)el.textContent=fmt(bal);}
-  
-  if(screen==='crash'){
-    setTimeout(function(){initCrashCanvas();if(!crBetting&&!crActive)startBetting();},100);
-  }
-};
-
-// Also update GAME_SCREENS to include new games
-
-// ═══════════════════════════════════════════
-// ADMIN TERMINAL IMPROVEMENTS
-// ═══════════════════════════════════════════
-// Enhance termPrint with click-to-run suggestions
-var _origTermPrint=termPrint;
-termPrint=function(text,cls){
-  _origTermPrint(text,cls);
-};
-
-// Add terminal autocomplete suggestions on help
-// ═══════════════════════════════════════════
-
-
-
-
-// ═══════════════════════════════════════════
-// VIDEO POKER (Jacks or Better)
-// ═══════════════════════════════════════════
-
-
-// ═══════════════════════════════════════════
-// ═══════════════════════════════════════════
-// GO() ADDITIONS FOR NEW GAMES
-// ═══════════════════════════════════════════
-
-
-
-
-// ═══════════════════════════════════════════
-// WHEEL
-// ═══════════════════════════════════════════
-
-// ═══════════════════════════════════════════
-// CHICKEN CROSS - IMPROVED
-// ═══════════════════════════════════════════
-var CK_ROWS=8,CK_LANES=4;
-var ckGrid=[],ckCurrentRow=0,ckActive=false,ckBet=0,ckSf=null,ckDiff=2;
-
-function ckGetMult(rowsCrossed,diff){
-  // Each row: (lanes-cars)/lanes chance of survival
-  var safe=CK_LANES-diff;
-  var prob=Math.pow(safe/CK_LANES,rowsCrossed);
-  return Math.max(1,parseFloat(((1/prob)*0.97).toFixed(2)));
-}
-
+// ════════ CHICKEN CROSS ════════
+var CK_ROWS=8,CK_LANES=4,ckGrid=[],ckDiff=2;
+function ckGetMult(rowsCrossed,diff){var safe=CK_LANES-diff,prob=Math.pow(safe/CK_LANES,rowsCrossed);return Math.max(1,parseFloat(((1/prob)*0.97).toFixed(2)));}
+function resetChicken(){ckActive=false;ckCurrentRow=0;ckGrid=[];var road=document.getElementById('ck-road');if(road)road.innerHTML='';var co=document.getElementById('ck-co');if(co)co.style.display='none';var ckS=document.getElementById('ck-start');if(ckS){ckS.disabled=false;ckS.style.display='inline-flex';}var ckA=document.getElementById('ck-again');if(ckA)ckA.style.display='none';setRes('ck-res','Set difficulty and start crossing!');var e=document.getElementById('bal-ck');if(e)e.textContent=fmt(bal);}
 async function startChicken(){
-  var betEl=document.getElementById('ck-bet');
-  var diffEl=document.getElementById('ck-diff');
-  if(!betEl||!diffEl)return;
-  var bet=parse(betEl.value);
+  var bet=parse(document.getElementById('ck-bet').value),diff=parseInt(document.getElementById('ck-diff').value)||2;
   if(bet<=0||bet>bal){notif('Invalid bet','err');return;}
-  ckBet=bet;ckCurrentRow=0;ckActive=true;
-  ckDiff=parseInt(diffEl.value)||2;
-  saveBal(bal-bet);
-  var startBtn=document.getElementById('ck-start');
-  var againBtn=document.getElementById('ck-again');
-  var coBtn=document.getElementById('ck-co');
-  if(startBtn)startBtn.disabled=true;
-  if(againBtn)againBtn.style.display='none';
-  if(coBtn)coBtn.style.display='none';
-  // Generate all row car positions using provably fair
-  ckSf=await rotateServerSeed('chicken');
-  ckGrid=[];
-  for(var r=0;r<CK_ROWS;r++){
-    var hash=await sha256(ckSf.seed+':'+seeds.chicken.client+':'+ckSf.nonce+':'+r);
-    var cars=[];
-    var usedPos=[];
-    for(var d=0;d<ckDiff;d++){
-      var pos=parseInt(hash.substring(d*2,d*2+2),16)%CK_LANES;
-      // avoid duplicate positions
-      var tries=0;
-      while(usedPos.indexOf(pos)>=0&&tries<20){
-        pos=(pos+1)%CK_LANES;tries++;
-      }
-      usedPos.push(pos);cars.push(pos);
-    }
-    ckGrid.push(cars);
-  }
-  // Update displays
-  var rowEl=document.getElementById('ck-row');
-  var multEl=document.getElementById('ck-mult-disp');
-  var payEl=document.getElementById('ck-payout-disp');
-  if(rowEl)rowEl.textContent='0';
-  if(multEl)multEl.textContent='1.00x';
-  if(payEl)payEl.textContent='$'+fmt(ckBet);
-  renderChickenRoad();
-  if(coBtn)coBtn.style.display='block';
-  setRes('ck-res','Click a safe lane to cross! Avoid the 🚗');
+  ckBet=bet;ckDiff=diff;ckCurrentRow=0;ckActive=true;
+  document.getElementById('ck-start').disabled=true;document.getElementById('ck-again').style.display='none';document.getElementById('ck-co').style.display='none';
+  try{
+    var d=await api('/games/chicken/start',{bet,difficulty:diff,clientSeed:clientSeeds.chicken});
+    ckGameId=d.gameId;bal=d.newBalance;updateBal();ckGrid=[];
+    document.getElementById('ck-row').textContent='0';document.getElementById('ck-mult-disp').textContent='1.00x';document.getElementById('ck-payout-disp').textContent='$'+fmt(ckBet);
+    renderChickenRoad();document.getElementById('ck-co').style.display='block';setRes('ck-res','Click a safe lane to cross!');
+  }catch(e){notif(e.message,'err');resetChicken();}
+}
+function renderChickenRoad(){var road=document.getElementById('ck-road');if(!road)return;road.innerHTML='';for(var r=CK_ROWS-1;r>=0;r--){var rowEl=document.createElement('div');rowEl.className='chicken-row';var lbl=document.createElement('div');lbl.className='chicken-row-lbl';lbl.textContent=r+1;rowEl.appendChild(lbl);var mult=ckGetMult(r+1,ckDiff);for(var l=0;l<CK_LANES;l++){var lane=document.createElement('div');lane.className='chicken-lane';var mLabel=document.createElement('div');mLabel.className='chicken-mult';mLabel.textContent=mult+'x';lane.appendChild(mLabel);if(r===ckCurrentRow&&ckActive){lane.classList.add('act');(function(row,col){lane.onclick=function(){clickChicken(row,col);};})(r,l);}else if(r<ckCurrentRow&&ckGrid[r]){var isCar=ckGrid[r].includes(l);lane.classList.add('dim');lane.textContent=isCar?'🚗':'✅';}else{lane.classList.add('dim');}rowEl.appendChild(lane);}road.appendChild(rowEl);}}
+async function clickChicken(row,col){
+  if(!ckActive||row!==ckCurrentRow||!ckGameId)return;
+  try{
+    var d=await api('/games/chicken/step',{gameId:ckGameId,row,col});
+    ckGrid[row]=d.carPositions;
+    if(d.hit){ckActive=false;document.getElementById('ck-co').style.display='none';document.getElementById('ck-start').disabled=false;document.getElementById('ck-again').style.display='inline-flex';setRes('ck-res','🚗 Hit a car on row '+(row+1)+'! Lost $'+fmt(ckBet),'lose');addHistory('chicken','lose','-$'+fmt(ckBet),d.revealedSeed,d.nonce);if(d.revealedSeed)gfReveal('chicken',d.revealedSeed,d.nonce);renderChickenRoad();}
+    else{ckCurrentRow++;document.getElementById('ck-row').textContent=ckCurrentRow;document.getElementById('ck-mult-disp').textContent=d.multiplier+'x';document.getElementById('ck-payout-disp').textContent='$'+fmt(ckBet*d.multiplier);if(d.payout){bal=d.newBalance;updateBal();ckActive=false;document.getElementById('ck-co').style.display='none';document.getElementById('ck-start').disabled=false;document.getElementById('ck-again').style.display='inline-flex';setRes('ck-res','🎉 Crossed all 8 rows! Won $'+fmt(d.payout),'win');addHistory('chicken','win','+$'+fmt(d.payout),d.revealedSeed,d.nonce);}else{setRes('ck-res','✅ Safe! '+d.multiplier+'x or keep going');setTimeout(renderChickenRoad,200);}}
+  }catch(e){notif(e.message,'err');}
+}
+async function cashChicken(){
+  if(!ckActive||ckCurrentRow===0||!ckGameId)return;
+  try{var d=await api('/games/chicken/cashout',{gameId:ckGameId});bal=d.newBalance;updateBal();ckActive=false;document.getElementById('ck-co').style.display='none';document.getElementById('ck-start').disabled=false;document.getElementById('ck-again').style.display='inline-flex';setRes('ck-res','🐔 Cashed out '+d.multiplier+'x after '+ckCurrentRow+' rows — Won $'+fmt(d.payout),'win');addHistory('chicken','win','+$'+fmt(d.payout),d.revealedSeed,d.nonce);}
+  catch(e){notif(e.message,'err');}
 }
 
-function renderChickenRoad(){
-  var road=document.getElementById('ck-road');
-  if(!road)return;
-  road.innerHTML='';
-  for(var r=CK_ROWS-1;r>=0;r--){
-    var rowEl=document.createElement('div');
-    rowEl.className='chicken-row';
-    var lbl=document.createElement('div');
-    lbl.className='chicken-row-lbl';
-    lbl.textContent=r+1;
-    rowEl.appendChild(lbl);
-    var mult=ckGetMult(r+1,ckDiff);
-    for(var l=0;l<CK_LANES;l++){
-      var lane=document.createElement('div');
-      lane.className='chicken-lane';
-      // Multiplier label
-      var mLabel=document.createElement('div');
-      mLabel.className='chicken-mult';
-      mLabel.textContent=mult+'x';
-      lane.appendChild(mLabel);
-      if(r===ckCurrentRow&&ckActive){
-        // Current active row
-        lane.classList.add('act');
-        lane.textContent='';
-        lane.appendChild(mLabel);
-        (function(row,col){
-          lane.onclick=function(){clickChicken(row,col);};
-        })(r,l);
-      }else if(r<ckCurrentRow){
-        // Already crossed - reveal what was there
-        var isCar=ckGrid[r]&&ckGrid[r].indexOf(l)>=0;
-        lane.classList.add('dim');
-        lane.textContent=isCar?'🚗':'✅';
-      }else{
-        // Upcoming rows - greyed out
-        lane.classList.add('dim');
-      }
-      rowEl.appendChild(lane);
-    }
-    road.appendChild(rowEl);
-  }
+// ════════ ADMIN PANEL ════════
+async function loadAdminDashboard(){
+  try{
+    var [stats,users,logs]=await Promise.all([api('/admin/stats'),api('/admin/users'),api('/admin/logs')]);
+    var el=document.getElementById('admin-stats');
+    if(el){el.innerHTML='<table class="dtable"><tr><th>Metric</th><th>Value</th></tr><tr><td>Users</td><td>'+stats.userCount+'</td></tr><tr><td>Total Balance</td><td>$'+fmt(stats.totalBalance)+'</td></tr><tr><td>Total Wins</td><td>'+stats.totalWins+'</td></tr><tr><td>Banned</td><td>'+stats.banned+'</td></tr><tr><td>Deposited</td><td>$'+fmt(stats.deposited)+'</td></tr><tr><td>Withdrawn</td><td>$'+fmt(stats.withdrawn)+'</td></tr></table>';}
+    loadUsersAdmin(users.users);
+    loadLogs(logs.logs);
+  }catch(e){notif('Admin load failed: '+e.message,'err');}
 }
-
-function clickChicken(row,col){
-  if(!ckActive||row!==ckCurrentRow)return;
-  if(!ckGrid[row])return;
-  var isCar=ckGrid[row].indexOf(col)>=0;
-  // Reveal the whole row
-  var road=document.getElementById('ck-road');
-  if(road){
-    var rows=road.querySelectorAll('.chicken-row');
-    // rows are rendered bottom-to-top so row index from bottom
-    var rowIdx=CK_ROWS-1-row;
-    var rowEl=rows[rowIdx];
-    if(rowEl){
-      var lanes=rowEl.querySelectorAll('.chicken-lane');
-      lanes.forEach(function(lane,i){
-        lane.onclick=null;
-        lane.classList.remove('act');
-        lane.textContent='';
-        if(ckGrid[row].indexOf(i)>=0){
-          lane.classList.add('car');
-          lane.textContent='🚗';
-        }else{
-          lane.classList.add(i===col?'safe':'dim');
-          lane.textContent=i===col?'✅':'';
-        }
-      });
-    }
-  }
-  if(isCar){
-    // Hit a car
-    ckActive=false;
-    var coBtn=document.getElementById('ck-co');
-    var startBtn=document.getElementById('ck-start');
-    var againBtn=document.getElementById('ck-again');
-    if(coBtn)coBtn.style.display='none';
-    if(startBtn)startBtn.disabled=false;
-    if(againBtn)againBtn.style.display='inline-flex';
-    setRes('ck-res','🚗 Hit a car on row '+(row+1)+'! Lost $'+fmt(ckBet),'lose');
-    if(ckSf){addHistory('chicken','lose','-$'+fmt(ckBet));gfReveal('chicken',ckSf.seed,ckSf.nonce);}
-  }else{
-    // Safe!
-    ckCurrentRow++;
-    var mult=ckGetMult(ckCurrentRow,ckDiff);
-    var payout=parseFloat((ckBet*mult).toFixed(2));
-    var rowEl2=document.getElementById('ck-row');
-    var multEl=document.getElementById('ck-mult-disp');
-    var payEl=document.getElementById('ck-payout-disp');
-    if(rowEl2)rowEl2.textContent=ckCurrentRow;
-    if(multEl)multEl.textContent=mult+'x';
-    if(payEl)payEl.textContent='$'+fmt(payout);
-    if(ckCurrentRow>=CK_ROWS){
-      // Finished all rows!
-      ckActive=false;
-      saveBal(bal+payout,true);
-      var coBtn2=document.getElementById('ck-co');
-      var startBtn2=document.getElementById('ck-start');
-      var againBtn2=document.getElementById('ck-again');
-      if(coBtn2)coBtn2.style.display='none';
-      if(startBtn2)startBtn2.disabled=false;
-      if(againBtn2)againBtn2.style.display='inline-flex';
-      setRes('ck-res','🎉 Crossed all 8 rows! Won $'+fmt(payout),'win');
-      if(ckSf){addHistory('chicken','win','+$'+fmt(payout));gfReveal('chicken',ckSf.seed,ckSf.nonce);}
-    }else{
-      setRes('ck-res','✅ Safe! Next row or cash out — '+mult+'x payout');
-      setTimeout(renderChickenRoad,250);
-    }
-  }
+function loadUsersAdmin(users){
+  var t=document.getElementById('users-table');if(!t)return;
+  if(!users.length){t.innerHTML='<p style="color:var(--muted2);padding:10px">No users</p>';return;}
+  t.innerHTML='<table class="dtable"><thead><tr><th>Username</th><th>Edition</th><th>Balance</th><th>Wins</th><th>Status</th></tr></thead><tbody>'+
+    users.map(function(u){return'<tr><td>'+u.username+'</td><td>'+u.edition+'</td><td>$'+fmt(u.balance)+'</td><td>'+u.wins+'</td><td>'+(u.banned?'<span style="color:#f87171">Banned</span>':'<span style="color:#34d399">Active</span>')+'</td></tr>';}).join('')+'</tbody></table>';
 }
-
-function cashChicken(){
-  if(!ckActive||ckCurrentRow===0)return;
-  ckActive=false;
-  var mult=ckGetMult(ckCurrentRow,ckDiff);
-  var win=parseFloat((ckBet*mult).toFixed(2));
-  saveBal(bal+win,mult>1);
-  var coBtn=document.getElementById('ck-co');
-  var startBtn=document.getElementById('ck-start');
-  var againBtn=document.getElementById('ck-again');
-  if(coBtn)coBtn.style.display='none';
-  if(startBtn)startBtn.disabled=false;
-  if(againBtn)againBtn.style.display='inline-flex';
-  setRes('ck-res','🐔 Cashed out at '+mult+'x after '+ckCurrentRow+' rows — Won $'+fmt(win),'win');
-  if(ckSf){addHistory('chicken','win','+$'+fmt(win));gfReveal('chicken',ckSf.seed,ckSf.nonce);}
+function loadLogs(logs){
+  var el=document.getElementById('logs-container');if(!el)return;
+  if(!logs||!logs.length){el.innerHTML='<p style="color:var(--muted2)">No logs</p>';return;}
+  el.innerHTML=logs.map(function(l){return'<div class="log-entry"><span class="log-type">'+l.type+'</span><span class="log-user">'+(l.user||l.by||'—')+'</span><span class="log-msg">'+(l.message||'$'+fmt(l.amount||0))+'</span><span class="log-time">'+new Date(l.time).toLocaleString()+'</span></div>';}).join('');
 }
+async function singleBalOp(op){var user=document.getElementById('su-bal-user').value.trim(),amt=document.getElementById('su-bal-amt').value.trim();if(!user||!amt){notif('Fill both fields','err');return;}try{var d=await api('/admin/balance',{username:user,amount:amt,operation:op});notif('Balance updated for '+user+' → $'+fmt(d.newBalance),'ok');loadAdminDashboard();}catch(e){notif(e.message,'err');}}
+async function banUser(ban){var user=document.getElementById('ban-user').value.trim(),reason=document.getElementById('ban-reason').value.trim();if(!user){notif('Enter username','err');return;}try{await api('/admin/ban',{username:user,ban,reason});notif((ban?'Banned ':'Unbanned ')+user,'ok');loadAdminDashboard();}catch(e){notif(e.message,'err');}}
+async function adminResetPw(){var user=document.getElementById('rpw-user').value.trim(),pw=document.getElementById('rpw-new').value;if(!user||!pw){notif('Fill both fields','err');return;}try{await api('/admin/resetpassword',{username:user,newPassword:pw});notif('Password reset for '+user,'ok');}catch(e){notif(e.message,'err');}}
+async function deleteAccount(){var user=document.getElementById('del-user').value.trim();if(!user){notif('Enter username','err');return;}if(!confirm('Delete "'+user+'"?'))return;try{await api('/admin/delete',{username:user});notif('Deleted: '+user,'ok');loadAdminDashboard();}catch(e){notif(e.message,'err');}}
+async function sendAnnouncement(){var msg=document.getElementById('ann-inp').value.trim();if(!msg){notif('Enter message','err');return;}try{await api('/admin/announcement',{text:msg,active:true});notif('Announcement sent','ok');document.getElementById('ann-inp').value='';}catch(e){notif(e.message,'err');}}
+async function clearAnnouncement(){try{await api('/admin/announcement',{text:'',active:false});document.getElementById('announce-bar').style.display='none';notif('Cleared','inf');}catch(e){}}
+async function sendGlobalMsg(){var msg=document.getElementById('gmsg-inp').value.trim();if(!msg){notif('Enter message','err');return;}try{await api('/admin/broadcast',{message:msg});notif('Broadcast sent','ok');}catch(e){notif(e.message,'err');}}
+async function globalBalOp(op){var amt=document.getElementById('glob-amt').value;if(!amt){notif('Enter amount','err');return;}if(!confirm('Apply to ALL users?'))return;try{var d=await api('/admin/globalbalance',{amount:amt,operation:op});notif('Updated '+d.userCount+' users','ok');loadAdminDashboard();}catch(e){notif(e.message,'err');}}
+async function loadStats(){var d=await api('/admin/stats');var el=document.getElementById('stats-out');if(el)el.innerHTML='Users: '+d.userCount+'<br>Total bal: $'+fmt(d.totalBalance)+'<br>Wins: '+d.totalWins+'<br>Banned: '+d.banned;}
+async function listUsersDebug(){var filter=document.getElementById('filter-ed').value.trim();var d=await api('/admin/users');var users=filter?d.users.filter(function(u){return u.edition&&u.edition.toLowerCase()===filter.toLowerCase();}):d.users;var out=document.getElementById('users-list-out');out.style.display='block';out.innerHTML=users.map(function(u){return'<span style="color:'+(u.banned?'#f87171':'#34d399')+'">'+u.username+'</span> | '+u.edition+' | $'+fmt(u.balance)+' | '+u.wins+' wins';}).join('<br>');}
+async function lookupUser(){var user=document.getElementById('lookup-user').value.trim();if(!user)return;var d=await api('/admin/users');var u=d.users.find(function(x){return x.username===user;});var el=document.getElementById('lookup-result');el.style.display='block';el.innerHTML=u?('<b style="color:#f59e0b">'+u.username+'</b><br>Edition: '+u.edition+'<br>Balance: $'+fmt(u.balance)+'<br>Wins: '+u.wins+'<br>Banned: '+(u.banned?'<span style="color:#f87171">YES</span>':'No')):'<span style="color:#f87171">Not found</span>';}
+function switchDebugTab(n){for(var i=0;i<=7;i++){var tab=document.getElementById('dt'+i),cont=document.getElementById('dbtp'+i);if(tab)tab.classList.toggle('on',i===n);if(cont)cont.style.display=i===n?'block':'none';}}
+// Terminal stub - admin terminal commands go through API
+var termHistory=[],termIdx=0;
+function termPrint(text,cls){var el=document.getElementById('term-out');if(!el)return;var d=document.createElement('div');d.className='term-line '+(cls||'');d.textContent=text;el.appendChild(d);el.scrollTop=el.scrollHeight;}
+function termKeyDown(e){if(e.key==='Enter')runCmd();if(e.key==='ArrowUp'){if(termIdx>0){termIdx--;document.getElementById('term-inp').value=termHistory[termIdx]||'';}}if(e.key==='ArrowDown'){termIdx++;document.getElementById('term-inp').value=termHistory[termIdx]||'';}}
+async function runCmd(){var inp=document.getElementById('term-inp');var cmd=inp.value.trim();if(!cmd)return;termHistory.push(cmd);termIdx=termHistory.length;inp.value='';termPrint('$ '+cmd,'cmd');var parts=cmd.split(' '),c=parts[0],args=parts.slice(1);try{
+  if(c==='help'){termPrint('Commands: bal <user> | setbal <user> <amt> | addbal <user> <amt> | ban <user> [reason] | unban <user> | delete <user> | resetpw <user> <pw> | announce <msg> | clearann | broadcast <msg> | stats | listusers | forcelogout <user>','inf');}
+  else if(c==='bal'){var d=await api('/admin/users');var u=d.users.find(function(x){return x.username===args[0];});termPrint(u?args[0]+': $'+fmt(u.balance):'User not found',u?'ok':'err');}
+  else if(c==='setbal'){var d=await api('/admin/balance',{username:args[0],amount:args[1],operation:'set'});termPrint('Set '+args[0]+' balance → $'+fmt(d.newBalance),'ok');}
+  else if(c==='addbal'){var d=await api('/admin/balance',{username:args[0],amount:args[1],operation:'add'});termPrint('Added to '+args[0]+' → $'+fmt(d.newBalance),'ok');}
+  else if(c==='ban'){var d=await api('/admin/ban',{username:args[0],ban:true,reason:args.slice(1).join(' ')});termPrint('Banned: '+args[0],'ok');}
+  else if(c==='unban'){var d=await api('/admin/ban',{username:args[0],ban:false});termPrint('Unbanned: '+args[0],'ok');}
+  else if(c==='delete'){if(!confirm('Delete '+args[0]+'?'))return;var d=await api('/admin/delete',{username:args[0]});termPrint('Deleted: '+args[0],'ok');}
+  else if(c==='resetpw'){var d=await api('/admin/resetpassword',{username:args[0],newPassword:args[1]});termPrint('Password reset for '+args[0],'ok');}
+  else if(c==='announce'){var d=await api('/admin/announcement',{text:args.join(' '),active:true});termPrint('Announcement set','ok');}
+  else if(c==='clearann'){await api('/admin/announcement',{text:'',active:false});termPrint('Announcement cleared','ok');}
+  else if(c==='broadcast'){var d=await api('/admin/broadcast',{message:args.join(' ')});termPrint('Broadcast sent','ok');}
+  else if(c==='stats'){var d=await api('/admin/stats');termPrint('Users: '+d.userCount+' | Bal: $'+fmt(d.totalBalance)+' | Wins: '+d.totalWins,'data');}
+  else if(c==='listusers'){var d=await api('/admin/users');d.users.forEach(function(u){termPrint(u.username+' | '+u.edition+' | $'+fmt(u.balance)+(u.banned?' [BANNED]':''),'data');});}
+  else if(c==='forcelogout'){await api('/admin/forcelogout',{username:args[0]});termPrint('Force logout: '+args[0],'ok');}
+  else{termPrint('Unknown command. Type help for list.','err');}
+}catch(e){termPrint('Error: '+e.message,'err');}}
 
-// ═══════════════════════════════════════════
-// GO() updates for remaining new games
-// ═══════════════════════════════════════════
-var _goFinal=go;
-go=function(screen){
-  _goFinal(screen);
-  if(screen==='chicken'){
-    ckActive=false;ckCurrentRow=0;ckGrid=[];
-    var road=document.getElementById('ck-road');if(road)road.innerHTML='';
-    var co=document.getElementById('ck-co');if(co)co.style.display='none';
-    var ckS=document.getElementById('ck-start');if(ckS){ckS.disabled=false;ckS.style.display='inline-flex';}
-    var ckA=document.getElementById('ck-again');if(ckA)ckA.style.display='none';
-    var ckR=document.getElementById('ck-row');if(ckR)ckR.textContent='0';
-    var ckM=document.getElementById('ck-mult-disp');if(ckM)ckM.textContent='1.00x';
-    var ckP=document.getElementById('ck-payout-disp');if(ckP)ckP.textContent='$0';
-    setRes('ck-res','Set difficulty and start crossing!');
-    var e=document.getElementById('bal-ck');if(e)e.textContent=fmt(bal);
+// ── INIT ──
+window.addEventListener('load',function(){
+  var tok=localStorage.getItem('dd_tok'),who=localStorage.getItem('dd_who'),ed=localStorage.getItem('dd_ed');
+  if(tok&&who){
+    notif('Restoring session...','inf');
+    api('/user/me').then(function(d){
+      if(d.banned){localStorage.removeItem('dd_tok');return;}
+      onLoginSuccess({username:who,edition:ed||d.edition,balance:d.balance,wins:d.wins,isAdmin:d.isAdmin});
+    }).catch(function(){localStorage.removeItem('dd_tok');});
   }
-};
-
-
-
+});
+document.addEventListener('keypress',function(e){if(e.key!=='Enter'||CS!=='login')return;document.getElementById('signup-form').style.display!=='none'?doSignup():doLogin();});
 
 </script>
 </body>
