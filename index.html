@@ -1433,6 +1433,14 @@ function doLogout(){
   CU='';CE='';bal=0;wins=0;isAdmin=false;CS='login';
   crBetting=false;crActive=false;gameInProgress=false;go('login');notif('Logged out','inf');
 }
+function openDebug(){
+  var m = document.getElementById('debug-modal');
+  if(m) m.classList.add('open');
+}
+function closeDebug(){
+  var m = document.getElementById('debug-modal');
+  if(m) m.classList.remove('open');
+}
 
 // ── Poll ──
 function startUserPoll(){
