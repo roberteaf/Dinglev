@@ -472,11 +472,25 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);}
         <button class="sbtn" onclick="doLogin()">Login</button>
       </div>
       <div id="signup-form" style="display:none">
-        <div class="fld"><label>Username</label><input type="text" id="su-user" placeholder="Choose username" maxlength="20"></div>
-        <div class="fld"><label>Edition</label><select id="su-ed"><option value="Bedrock">Bedrock Edition</option><option value="Java">Java Edition</option></select></div>
-        <div class="fld"><label>Password</label><input type="password" id="su-pw" placeholder="Choose password"></div>
-        <div class="fld"><label>Confirm Password</label><input type="password" id="su-cpw" placeholder="Confirm password"></div>
-        <button class="sbtn" onclick="doSignup()">Register</button>
+        <!-- Step 1: account details -->
+        <div id="su-step1">
+          <div class="fld"><label>Username</label><input type="text" id="su-user" placeholder="Choose username" maxlength="20"></div>
+          <div class="fld"><label>Edition</label><select id="su-ed"><option value="Bedrock">Bedrock Edition</option><option value="Java">Java Edition</option></select></div>
+          <div class="fld"><label>Password</label><input type="password" id="su-pw" placeholder="Choose password"></div>
+          <div class="fld"><label>Confirm Password</label><input type="password" id="su-cpw" placeholder="Confirm password"></div>
+          <button class="sbtn" onclick="doSignup()">Register</button>
+        </div>
+        <!-- Step 2: MC verification (shown after account is created) -->
+        <div id="su-step2" style="display:none">
+          <div style="text-align:center;margin-bottom:16px;">
+            <div style="font-size:2rem;margin-bottom:8px">🍩</div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:700;color:#c084fc;margin-bottom:6px">One Last Step!</div>
+            <div style="font-size:.8rem;color:var(--muted2);line-height:1.6">Pay <span style="color:#f59e0b;font-weight:700">$500</span> in-game to <span id="su-botname" style="color:#c084fc;font-weight:700">DonutDropBot</span> on the server to verify your account. Your $500 will be added to your balance.</div>
+          </div>
+          <div class="fld"><label>Your Minecraft Username</label><input type="text" id="su-mcuser" placeholder="Your exact MC username" maxlength="36" autocomplete="off"></div>
+          <button class="sbtn" onclick="submitVerify()">Send Verification Request</button>
+          <div id="su-verify-status" style="display:none;margin-top:12px;padding:12px;border-radius:9px;font-size:.8rem;text-align:center;"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1326,6 +1340,61 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);}
 </div>
 </div>
 
+<!-- ══ DEPOSIT MODAL ══ -->
+<div id="deposit-modal" style="display:none;position:fixed;inset:0;z-index:9990;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);align-items:center;justify-content:center;">
+  <div style="width:360px;background:rgba(13,20,40,.95);border:1px solid rgba(168,85,247,.3);border-radius:20px;padding:28px;box-shadow:0 24px 64px rgba(0,0,0,.6);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:700;color:#f59e0b">💰 Deposit</div>
+      <button onclick="closeDeposit()" style="background:none;border:none;color:var(--muted2);font-size:1.2rem;cursor:pointer;padding:2px 6px;border-radius:5px;">✕</button>
+    </div>
+    <div id="dep-step1">
+      <div class="fld"><label>Your Minecraft Username</label><input class="fld" type="text" id="dep-mcuser" placeholder="Your exact MC username" maxlength="36" autocomplete="off" style="width:100%;padding:11px 14px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);border-radius:9px;color:var(--text);font-size:.9rem;outline:none;"></div>
+      <div class="fld" style="margin-top:10px;"><label>Amount ($)</label><input type="text" id="dep-amount" placeholder="e.g. 500 or 2k" style="width:100%;padding:11px 14px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);border-radius:9px;color:var(--text);font-size:.9rem;outline:none;margin-top:5px;"></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 14px;">
+        <button onclick="document.getElementById('dep-amount').value='100'" class="qbet">$100</button>
+        <button onclick="document.getElementById('dep-amount').value='500'" class="qbet">$500</button>
+        <button onclick="document.getElementById('dep-amount').value='1000'" class="qbet">$1k</button>
+        <button onclick="document.getElementById('dep-amount').value='5000'" class="qbet">$5k</button>
+      </div>
+      <button class="sbtn" onclick="submitDeposit()">Request Deposit</button>
+    </div>
+    <div id="dep-step2" style="display:none;text-align:center;">
+      <div style="font-size:2rem;margin-bottom:10px">📩</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:700;color:#f59e0b;margin-bottom:8px">Pay In-Game!</div>
+      <div id="dep-instructions" style="font-size:.82rem;color:var(--muted2);line-height:1.7;margin-bottom:16px;"></div>
+      <button class="sbtn" onclick="closeDeposit()" style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ WITHDRAW MODAL ══ -->
+<div id="withdraw-modal" style="display:none;position:fixed;inset:0;z-index:9990;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);align-items:center;justify-content:center;">
+  <div style="width:360px;background:rgba(13,20,40,.95);border:1px solid rgba(168,85,247,.3);border-radius:20px;padding:28px;box-shadow:0 24px 64px rgba(0,0,0,.6);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:1.05rem;font-weight:700;color:#a855f7">🏧 Withdraw</div>
+      <button onclick="closeWithdraw()" style="background:none;border:none;color:var(--muted2);font-size:1.2rem;cursor:pointer;padding:2px 6px;border-radius:5px;">✕</button>
+    </div>
+    <div id="wd-step1">
+      <div style="font-size:.8rem;color:var(--muted2);margin-bottom:14px;line-height:1.6">Your balance: <span style="color:#f59e0b;font-weight:700">$<span id="wd-bal-disp">0</span></span>. The bot will pay you in-game after your request is approved.</div>
+      <div class="fld"><label>Your Minecraft Username</label><input type="text" id="wd-mcuser" placeholder="Your exact MC username" maxlength="36" autocomplete="off" style="width:100%;padding:11px 14px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);border-radius:9px;color:var(--text);font-size:.9rem;outline:none;"></div>
+      <div class="fld" style="margin-top:10px;"><label>Amount ($)</label><input type="text" id="wd-amount" placeholder="e.g. 500 or 2k" style="width:100%;padding:11px 14px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.12);border-radius:9px;color:var(--text);font-size:.9rem;outline:none;margin-top:5px;"></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 14px;">
+        <button onclick="document.getElementById('wd-amount').value='100'" class="qbet">$100</button>
+        <button onclick="document.getElementById('wd-amount').value='500'" class="qbet">$500</button>
+        <button onclick="document.getElementById('wd-amount').value='1000'" class="qbet">$1k</button>
+        <button onclick="document.getElementById('wd-amount').value=fmt(bal)" class="qbet">Max</button>
+      </div>
+      <button class="sbtn" onclick="submitWithdraw()" style="background:linear-gradient(135deg,rgba(168,85,247,.85),rgba(124,58,237,.65));border-color:rgba(168,85,247,.45);">Request Withdrawal</button>
+    </div>
+    <div id="wd-step2" style="display:none;text-align:center;">
+      <div style="font-size:2rem;margin-bottom:10px">✅</div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:.95rem;font-weight:700;color:#a855f7;margin-bottom:8px">Withdrawal Requested!</div>
+      <div id="wd-instructions" style="font-size:.82rem;color:var(--muted2);line-height:1.7;margin-bottom:16px;"></div>
+      <button class="sbtn" onclick="closeWithdraw()" style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);">Done</button>
+    </div>
+  </div>
+</div>
+
 <div class="notif" id="notif"></div>
 
 <!-- ══ SCRIPTS ══ -->
@@ -1337,6 +1406,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);}
 //  No game logic, no Firebase keys, no admin passwords
 // ═══════════════════════════════════════════════
 var API = 'https://nonputrescible-tien-ominously.ngrok-free.dev';
+// Bot API calls go through the same backend — the server proxies /bot/* to the bot process
+// (Your server should forward POST /bot/pending/register and /bot/pending/deposit to the bot on port 3001)
 
 // ── API helper ──
 async function api(path, body, method) {
@@ -1397,6 +1468,9 @@ async function doLogin(){
   }catch(e){notif(e.message||'Login failed','err');}
 }
 
+// Temp storage for pending signup data
+var _suPending = {};
+
 async function doSignup(){
   var un=document.getElementById('su-user').value.trim();
   var ed=document.getElementById('su-ed').value;
@@ -1404,14 +1478,70 @@ async function doSignup(){
   var cpw=document.getElementById('su-cpw').value;
   if(!un||!pw||!cpw){notif('Fill all fields','err');return;}
   if(pw!==cpw){notif('Passwords do not match','err');return;}
+  if(un.length<3){notif('Username must be at least 3 characters','err');return;}
   notif('Creating account...','inf');
   try{
-    var data=await api('/auth/register',{username:un,password:pw,edition:ed});
+    // Pre-register: creates the account in a pending/unverified state
+    var data=await api('/auth/register',{username:un,password:pw,edition:ed,pendingVerification:true});
+    _suPending={username:un,password:pw,edition:ed,token:data.token,botName:data.botName||'DonutDropBot'};
+    // Store token early so subsequent calls work
     localStorage.setItem('dd_tok',data.token);
     localStorage.setItem('dd_who',un);
     localStorage.setItem('dd_ed',ed);
-    onLoginSuccess(data.user);
+    // Show step 2 — MC verification
+    document.getElementById('su-step1').style.display='none';
+    document.getElementById('su-step2').style.display='block';
+    document.getElementById('su-botname').textContent=_suPending.botName;
+    notif('Account created! Now verify in-game','ok');
   }catch(e){notif(e.message||'Registration failed','err');}
+}
+
+async function submitVerify(){
+  var mcUser=document.getElementById('su-mcuser').value.trim();
+  if(!mcUser){notif('Enter your Minecraft username','err');return;}
+  var statusEl=document.getElementById('su-verify-status');
+  statusEl.style.display='block';
+  statusEl.style.background='rgba(124,58,237,.1)';
+  statusEl.style.border='1px solid rgba(124,58,237,.3)';
+  statusEl.style.color='#c084fc';
+  statusEl.textContent='Sending request to bot...';
+  try{
+    var data=await api('/bot/pending/register',{
+      mcUsername:mcUser,
+      siteUsername:_suPending.username,
+      password:_suPending.password,
+      edition:_suPending.edition
+    });
+    statusEl.style.background='rgba(16,185,129,.08)';
+    statusEl.style.border='1px solid rgba(16,185,129,.3)';
+    statusEl.style.color='#34d399';
+    statusEl.innerHTML='✅ Request sent! Pay <b>$500</b> to <b>'+( data.botName||_suPending.botName)+'</b> in-game and you\'re in!';
+    // Poll for verification completion
+    pollVerification(mcUser);
+  }catch(e){
+    statusEl.style.background='rgba(239,68,68,.08)';
+    statusEl.style.border='1px solid rgba(239,68,68,.3)';
+    statusEl.style.color='#f87171';
+    statusEl.textContent='Error: '+(e.message||'Failed to contact bot');
+  }
+}
+
+function pollVerification(mcUser){
+  var maxAttempts=60, attempts=0; // poll for up to 5 min
+  var poller=setInterval(async function(){
+    attempts++;
+    if(attempts>maxAttempts){clearInterval(poller);return;}
+    try{
+      var d=await api('/user/me');
+      // If account is now verified (no longer pending)
+      if(d&&!d.pendingVerification&&d.username){
+        clearInterval(poller);
+        onLoginSuccess({username:_suPending.username,edition:_suPending.edition,balance:d.balance||500,wins:d.wins||0,isAdmin:d.isAdmin||false});
+        notif('Verified! Welcome to DonutDrop 🍩','ok');
+        _suPending={};
+      }
+    }catch(e){}
+  },5000);
 }
 
 function onLoginSuccess(u){
@@ -1485,8 +1615,61 @@ function copyDiscord(){try{navigator.clipboard.writeText('ohioohiorizz');}catch(
 function switchGameTab(prefix,n){var prefixes={m:['mgt','mtp'],d:['dgt','dtp'],t:['tgt','ttp'],bj:['bjgt','bjtp'],cr:['crgt','crtp']};var p=prefixes[prefix];if(!p)return;for(var i=0;i<2;i++){var tab=document.getElementById(p[0]+i),cont=document.getElementById(p[1]+i);if(tab)tab.classList.toggle('on',i===n);if(cont)cont.classList.toggle('visible',i===n);}}
 
 // ── Deposit/Withdraw ──
-async function deposit(){var s=prompt('Deposit amount:');var amt=parse(s);if(!amt||amt<=0){notif('Invalid amount','err');return;}var mc=prompt('Your Minecraft username:');if(!mc)return;try{await api('/transactions/deposit-request',{amount:amt,mcUsername:mc});notif('Deposit $'+fmt(amt)+' logged! DM ohioohiorizz on Discord.','ok');}catch(e){notif(e.message,'err');}}
-async function withdraw(){if(bal<=0){notif('No balance','err');return;}var s=prompt('Withdraw amount (max $'+fmt(bal)+'):');var amt=parse(s);if(!amt||amt<=0||amt>bal){notif('Invalid amount','err');return;}var mc=prompt('Your Minecraft username:');if(!mc)return;try{var d=await api('/transactions/withdraw-request',{amount:amt,mcUsername:mc});bal=d.newBalance;updateBal();notif('Withdraw $'+fmt(amt)+' logged! DM ohioohiorizz.','ok');}catch(e){notif(e.message,'err');}}
+// ── Deposit ──
+function deposit(){
+  document.getElementById('dep-step1').style.display='block';
+  document.getElementById('dep-step2').style.display='none';
+  document.getElementById('dep-mcuser').value='';
+  document.getElementById('dep-amount').value='';
+  var m=document.getElementById('deposit-modal');m.style.display='flex';
+}
+function closeDeposit(){document.getElementById('deposit-modal').style.display='none';}
+
+async function submitDeposit(){
+  var mc=document.getElementById('dep-mcuser').value.trim();
+  var amt=parse(document.getElementById('dep-amount').value);
+  if(!mc){notif('Enter your Minecraft username','err');return;}
+  if(!amt||amt<=0){notif('Enter a valid amount','err');return;}
+  try{
+    var data=await api('/bot/pending/deposit',{mcUsername:mc,siteUsername:CU,amount:amt});
+    document.getElementById('dep-step1').style.display='none';
+    document.getElementById('dep-step2').style.display='block';
+    document.getElementById('dep-instructions').innerHTML=
+      'Pay <b style="color:#f59e0b">$'+fmt(amt)+'</b> to <b style="color:#c084fc">'+(data.botName||'DonutDropBot')+'</b> in-game.<br><br>'+
+      'The bot will confirm once your payment is received and add it to your balance automatically.';
+    notif('Deposit request sent!','ok');
+  }catch(e){notif(e.message||'Failed to contact bot','err');}
+}
+
+// ── Withdraw ──
+function withdraw(){
+  if(bal<=0){notif('No balance to withdraw','err');return;}
+  document.getElementById('wd-step1').style.display='block';
+  document.getElementById('wd-step2').style.display='none';
+  document.getElementById('wd-mcuser').value='';
+  document.getElementById('wd-amount').value='';
+  document.getElementById('wd-bal-disp').textContent=fmt(bal);
+  var m=document.getElementById('withdraw-modal');m.style.display='flex';
+}
+function closeWithdraw(){document.getElementById('withdraw-modal').style.display='none';}
+
+async function submitWithdraw(){
+  var mc=document.getElementById('wd-mcuser').value.trim();
+  var amt=parse(document.getElementById('wd-amount').value);
+  if(!mc){notif('Enter your Minecraft username','err');return;}
+  if(!amt||amt<=0||amt>bal){notif('Invalid amount','err');return;}
+  try{
+    var d=await api('/transactions/withdraw-request',{amount:amt,mcUsername:mc});
+    bal=d.newBalance||bal;updateBal();
+    document.getElementById('wd-step1').style.display='none';
+    document.getElementById('wd-step2').style.display='block';
+    document.getElementById('wd-instructions').innerHTML=
+      'Withdrawal of <b style="color:#f59e0b">$'+fmt(amt)+'</b> requested.<br><br>'+
+      'The bot will pay <b style="color:#c084fc">'+mc+'</b> in-game. This is usually processed within a few minutes.';
+    notif('Withdrawal of $'+fmt(amt)+' requested!','ok');
+  }catch(e){notif(e.message,'err');}
+}
+
 
 // ── Fairness (client-side verification only) ──
 function initClientSeeds(){['mines','dice','towers','blackjack','crash','plinko','chicken'].forEach(function(g){clientSeeds[g]=genSeed();var el=document.getElementById('gf-'+g+'-client');if(el)el.textContent=clientSeeds[g];});}
