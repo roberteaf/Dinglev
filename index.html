@@ -475,6 +475,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);}
         <!-- Step 1: account details -->
         <div id="su-step1">
           <div class="fld"><label>Username</label><input type="text" id="su-user" placeholder="Choose username" maxlength="20"></div>
+          <div class="fld"><label>Minecraft Username</label><input type="text" id="su-mcuser-step1" placeholder="Your exact MC username" maxlength="36" autocomplete="off"></div>
           <div class="fld"><label>Edition</label><select id="su-ed"><option value="Bedrock">Bedrock Edition</option><option value="Java">Java Edition</option></select></div>
           <div class="fld"><label>Password</label><input type="password" id="su-pw" placeholder="Choose password"></div>
           <div class="fld"><label>Confirm Password</label><input type="password" id="su-cpw" placeholder="Confirm password"></div>
@@ -1468,31 +1469,52 @@ async function doLogin(){
   }catch(e){notif(e.message||'Login failed','err');}
 }
 
+// Admin accounts that skip MC verification
+var ADMIN_ACCOUNTS = ['burst', 'metech'];
+
 // Temp storage for pending signup data
 var _suPending = {};
 
 async function doSignup(){
   var un=document.getElementById('su-user').value.trim();
+  var mc=document.getElementById('su-mcuser-step1').value.trim();
   var ed=document.getElementById('su-ed').value;
   var pw=document.getElementById('su-pw').value;
   var cpw=document.getElementById('su-cpw').value;
-  if(!un||!pw||!cpw){notif('Fill all fields','err');return;}
+  if(!un||!mc||!pw||!cpw){notif('Fill all fields','err');return;}
   if(pw!==cpw){notif('Passwords do not match','err');return;}
   if(un.length<3){notif('Username must be at least 3 characters','err');return;}
+
+  // Admin accounts bypass MC verification entirely
+  var isAdminAccount = ADMIN_ACCOUNTS.indexOf(un.toLowerCase()) !== -1;
+
   notif('Creating account...','inf');
   try{
-    // Pre-register: creates the account in a pending/unverified state
-    var data=await api('/auth/register',{username:un,password:pw,edition:ed,pendingVerification:true});
-    _suPending={username:un,password:pw,edition:ed,token:data.token,botName:data.botName||'DonutDropBot'};
-    // Store token early so subsequent calls work
+    var data=await api('/auth/register',{
+      username:un, password:pw, edition:ed,
+      mcUsername:mc,
+      pendingVerification: !isAdminAccount
+    });
+
     localStorage.setItem('dd_tok',data.token);
     localStorage.setItem('dd_who',un);
     localStorage.setItem('dd_ed',ed);
-    // Show step 2 — MC verification
+
+    if(isAdminAccount){
+      // Admin accounts go straight in — no verification needed
+      onLoginSuccess(data.user || {username:un,edition:ed,balance:data.balance||0,wins:0,isAdmin:true});
+      notif('Welcome, '+un+'! 👑','ok');
+      return;
+    }
+
+    // Everyone else goes to the in-game payment verification step
+    _suPending={username:un,password:pw,edition:ed,mcUsername:mc,token:data.token,botName:data.botName||'DonutDropBot'};
     document.getElementById('su-step1').style.display='none';
     document.getElementById('su-step2').style.display='block';
     document.getElementById('su-botname').textContent=_suPending.botName;
-    notif('Account created! Now verify in-game','ok');
+    // Pre-fill the MC username in step 2 so they don't have to type it again
+    document.getElementById('su-mcuser').value=mc;
+    notif('Account created! Pay $500 in-game to verify','ok');
   }catch(e){notif(e.message||'Registration failed','err');}
 }
 
@@ -1911,7 +1933,7 @@ var termHistory=[],termIdx=0;
 function termPrint(text,cls){var el=document.getElementById('term-out');if(!el)return;var d=document.createElement('div');d.className='term-line '+(cls||'');d.textContent=text;el.appendChild(d);el.scrollTop=el.scrollHeight;}
 function termKeyDown(e){if(e.key==='Enter')runCmd();if(e.key==='ArrowUp'){if(termIdx>0){termIdx--;document.getElementById('term-inp').value=termHistory[termIdx]||'';}}if(e.key==='ArrowDown'){termIdx++;document.getElementById('term-inp').value=termHistory[termIdx]||'';}}
 async function runCmd(){var inp=document.getElementById('term-inp');var cmd=inp.value.trim();if(!cmd)return;termHistory.push(cmd);termIdx=termHistory.length;inp.value='';termPrint('$ '+cmd,'cmd');var parts=cmd.split(' '),c=parts[0],args=parts.slice(1);try{
-  if(c==='help'){termPrint('Commands: bal <user> | setbal <user> <amt> | addbal <user> <amt> | ban <user> [reason] | unban <user> | delete <user> | resetpw <user> <pw> | announce <msg> | clearann | broadcast <msg> | stats | listusers | forcelogout <user>','inf');}
+  if(c==='help'){termPrint('Commands: bal <user> | setbal <user> <amt> | addbal <user> <amt> | ban <user> [reason] | unban <user> | delete <user> | resetpw <user> <pw> | announce <msg> | clearann | broadcast <msg> | stats | listusers | forcelogout <user> | cleanuplist','inf');}
   else if(c==='bal'){var d=await api('/admin/users');var u=d.users.find(function(x){return x.username===args[0];});termPrint(u?args[0]+': $'+fmt(u.balance):'User not found',u?'ok':'err');}
   else if(c==='setbal'){var d=await api('/admin/balance',{username:args[0],amount:args[1],operation:'set'});termPrint('Set '+args[0]+' balance → $'+fmt(d.newBalance),'ok');}
   else if(c==='addbal'){var d=await api('/admin/balance',{username:args[0],amount:args[1],operation:'add'});termPrint('Added to '+args[0]+' → $'+fmt(d.newBalance),'ok');}
@@ -1925,6 +1947,32 @@ async function runCmd(){var inp=document.getElementById('term-inp');var cmd=inp.
   else if(c==='stats'){var d=await api('/admin/stats');termPrint('Users: '+d.userCount+' | Bal: $'+fmt(d.totalBalance)+' | Wins: '+d.totalWins,'data');}
   else if(c==='listusers'){var d=await api('/admin/users');d.users.forEach(function(u){termPrint(u.username+' | '+u.edition+' | $'+fmt(u.balance)+(u.banned?' [BANNED]':''),'data');});}
   else if(c==='forcelogout'){await api('/admin/forcelogout',{username:args[0]});termPrint('Force logout: '+args[0],'ok');}
+  else if(c==='cleanuplist'){
+    // Deletes every non-admin account. Prompts twice to prevent accidents.
+    if(!confirm('cleanuplist: This will permanently DELETE every non-admin account. Are you sure?'))return;
+    if(!confirm('FINAL WARNING: This cannot be undone. Delete all non-admin accounts?'))return;
+    termPrint('Running cleanuplist — fetching users...','inf');
+    var d=await api('/admin/users');
+    var protected_accounts=ADMIN_ACCOUNTS.concat(['burst','metech']);
+    var toDelete=d.users.filter(function(u){
+      return !u.isAdmin && protected_accounts.indexOf(u.username.toLowerCase())===-1;
+    });
+    if(!toDelete.length){termPrint('No non-admin accounts to remove.','inf');return;}
+    termPrint('Deleting '+toDelete.length+' accounts...','inf');
+    var deleted=0,failed=0;
+    for(var i=0;i<toDelete.length;i++){
+      try{
+        await api('/admin/delete',{username:toDelete[i].username});
+        termPrint('Deleted: '+toDelete[i].username,'ok');
+        deleted++;
+      }catch(err){
+        termPrint('Failed: '+toDelete[i].username+' ('+err.message+')','err');
+        failed++;
+      }
+    }
+    termPrint('cleanuplist complete — '+deleted+' deleted, '+failed+' failed.', failed>0?'err':'ok');
+    loadAdminDashboard();
+  }
   else{termPrint('Unknown command. Type help for list.','err');}
 }catch(e){termPrint('Error: '+e.message,'err');}}
 
