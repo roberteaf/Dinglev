@@ -1472,8 +1472,9 @@ async function doLogin(){
 // Admin accounts that skip MC verification
 var ADMIN_ACCOUNTS = ['burst', 'metech'];
 
-// Temp storage for pending signup data
+// Temp storage -- nothing hits the server until payment confirmed
 var _suPending = {};
+var _verifyPoller = null;
 
 async function doSignup(){
   var un=document.getElementById('su-user').value.trim();
@@ -1483,87 +1484,89 @@ async function doSignup(){
   var cpw=document.getElementById('su-cpw').value;
   if(!un||!mc||!pw||!cpw){notif('Fill all fields','err');return;}
   if(pw!==cpw){notif('Passwords do not match','err');return;}
-  if(un.length<3){notif('Username must be at least 3 characters','err');return;}
+  if(un.length<3){notif('Username must be at least 3 chars','err');return;}
 
-  // Admin accounts bypass MC verification entirely
   var isAdminAccount = ADMIN_ACCOUNTS.indexOf(un.toLowerCase()) !== -1;
 
-  notif('Creating account...','inf');
-  try{
-    var data=await api('/auth/register',{
-      username:un, password:pw, edition:ed,
-      mcUsername:mc,
-      pendingVerification: !isAdminAccount
-    });
+  if(isAdminAccount){
+    notif('Creating account...','inf');
+    try{
+      var data=await api('/auth/register',{username:un,password:pw,edition:ed,mcUsername:mc,skipVerification:true});
+      localStorage.setItem('dd_tok',data.token);
+      localStorage.setItem('dd_who',un);
+      localStorage.setItem('dd_ed',ed);
+      onLoginSuccess(data.user||{username:un,edition:ed,balance:data.balance||0,wins:0,isAdmin:true});
+      notif('Welcome, '+un+'!','ok');
+    }catch(e){notif(e.message||'Registration failed','err');}
+    return;
+  }
 
-    localStorage.setItem('dd_tok',data.token);
-    localStorage.setItem('dd_who',un);
-    localStorage.setItem('dd_ed',ed);
-
-    if(isAdminAccount){
-      // Admin accounts go straight in — no verification needed
-      onLoginSuccess(data.user || {username:un,edition:ed,balance:data.balance||0,wins:0,isAdmin:true});
-      notif('Welcome, '+un+'! 👑','ok');
-      return;
-    }
-
-    // Everyone else goes to the in-game payment verification step
-    _suPending={username:un,password:pw,edition:ed,mcUsername:mc,token:data.token,botName:data.botName||'DonutDropBot'};
-    document.getElementById('su-step1').style.display='none';
-    document.getElementById('su-step2').style.display='block';
-    document.getElementById('su-botname').textContent=_suPending.botName;
-    // Pre-fill the MC username in step 2 so they don't have to type it again
-    document.getElementById('su-mcuser').value=mc;
-    notif('Account created! Pay $500 in-game to verify','ok');
-  }catch(e){notif(e.message||'Registration failed','err');}
+  // Non-admin: just save locally, DO NOT call the server or set localStorage
+  _suPending = {username:un, password:pw, edition:ed, mcUsername:mc};
+  document.getElementById('su-step1').style.display='none';
+  document.getElementById('su-step2').style.display='block';
+  document.getElementById('su-botname').textContent='DonutDropBot';
+  document.getElementById('su-mcuser').value = mc;
+  notif('Pay $500 in-game to finish registering','inf');
 }
 
 async function submitVerify(){
-  var mcUser=document.getElementById('su-mcuser').value.trim();
+  var mcUser = document.getElementById('su-mcuser').value.trim();
   if(!mcUser){notif('Enter your Minecraft username','err');return;}
-  var statusEl=document.getElementById('su-verify-status');
+  if(!_suPending.username){notif('Something went wrong, refresh and try again','err');return;}
+
+  var statusEl = document.getElementById('su-verify-status');
   statusEl.style.display='block';
   statusEl.style.background='rgba(124,58,237,.1)';
   statusEl.style.border='1px solid rgba(124,58,237,.3)';
   statusEl.style.color='#c084fc';
-  statusEl.textContent='Sending request to bot...';
+  statusEl.textContent='Contacting bot...';
+
   try{
-    var data=await api('/bot/pending/register',{
-      mcUsername:mcUser,
-      siteUsername:_suPending.username,
-      password:_suPending.password,
-      edition:_suPending.edition
+    var data = await api('/bot/pending/register',{
+      mcUsername: mcUser,
+      siteUsername: _suPending.username,
+      password: _suPending.password,
+      edition: _suPending.edition
     });
+    _suPending.mcUsername = mcUser;
     statusEl.style.background='rgba(16,185,129,.08)';
     statusEl.style.border='1px solid rgba(16,185,129,.3)';
     statusEl.style.color='#34d399';
-    statusEl.innerHTML='✅ Request sent! Pay <b>$500</b> to <b>'+( data.botName||_suPending.botName)+'</b> in-game and you\'re in!';
-    // Poll for verification completion
-    pollVerification(mcUser);
+    statusEl.innerHTML='Waiting for payment! Pay <b>$500</b> to <b>'+(data.botName||'DonutDropBot')+'</b> in-game. Account created automatically after payment.';
+    startVerifyPoll();
   }catch(e){
     statusEl.style.background='rgba(239,68,68,.08)';
     statusEl.style.border='1px solid rgba(239,68,68,.3)';
     statusEl.style.color='#f87171';
-    statusEl.textContent='Error: '+(e.message||'Failed to contact bot');
+    statusEl.textContent='Error: '+(e.message||'Could not contact bot. Try again.');
   }
 }
 
-function pollVerification(mcUser){
-  var maxAttempts=60, attempts=0; // poll for up to 5 min
-  var poller=setInterval(async function(){
+function startVerifyPoll(){
+  if(_verifyPoller) clearInterval(_verifyPoller);
+  var attempts=0, maxAttempts=72;
+  _verifyPoller = setInterval(async function(){
     attempts++;
-    if(attempts>maxAttempts){clearInterval(poller);return;}
+    if(attempts > maxAttempts){
+      clearInterval(_verifyPoller);
+      var s=document.getElementById('su-verify-status');
+      if(s){s.style.color='#f87171';s.textContent='Timed out. Refresh and try again.';}
+      return;
+    }
     try{
-      var d=await api('/user/me');
-      // If account is now verified (no longer pending)
-      if(d&&!d.pendingVerification&&d.username){
-        clearInterval(poller);
-        onLoginSuccess({username:_suPending.username,edition:_suPending.edition,balance:d.balance||500,wins:d.wins||0,isAdmin:d.isAdmin||false});
-        notif('Verified! Welcome to DonutDrop 🍩','ok');
+      var d = await api('/auth/check-verification',{mcUsername:_suPending.mcUsername,siteUsername:_suPending.username},'POST');
+      if(d && d.verified && d.token){
+        clearInterval(_verifyPoller);
+        localStorage.setItem('dd_tok', d.token);
+        localStorage.setItem('dd_who', _suPending.username);
+        localStorage.setItem('dd_ed', _suPending.edition);
+        onLoginSuccess(d.user||{username:_suPending.username,edition:_suPending.edition,balance:d.balance||500,wins:0,isAdmin:false});
+        notif('Verified! Welcome to DonutDrop!','ok');
         _suPending={};
       }
     }catch(e){}
-  },5000);
+  }, 5000);
 }
 
 function onLoginSuccess(u){
