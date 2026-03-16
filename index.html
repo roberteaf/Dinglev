@@ -1340,7 +1340,7 @@ var API = 'https://nonputrescible-tien-ominously.ngrok-free.dev';
 
 // ── API helper ──
 async function api(path, body, method) {
-  const opts = { method: method || (body ? 'POST' : 'GET'), headers: { 'Content-Type': 'application/json' } };
+  const opts = { method: method || (body ? 'POST' : 'GET'), headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' } };
   const tok = localStorage.getItem('dd_tok');
   if (tok) opts.headers['Authorization'] = 'Bearer ' + tok;
   if (body) opts.body = JSON.stringify(body);
