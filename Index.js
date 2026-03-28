@@ -11,8 +11,9 @@ const rl = readline.createInterface({ input: process.stdin, output: process.stdo
 function ask(q) { return new Promise(r => rl.question(q, r)); }
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+// ---------- Cookie management ----------
 async function getFreshCookieWithPuppeteer(email, password) {
-  console.log('🔐 Launching headless browser to log in...');
+  console.log('🔐 Logging in automatically...');
   const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
   const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 720 });
@@ -27,39 +28,36 @@ async function getFreshCookieWithPuppeteer(email, password) {
   await browser.close();
   const cookieString = cookies.map(c => `${c.name}=${c.value}`).join('; ');
   fs.writeFileSync('cookie.txt', cookieString);
-  console.log('✅ Cookie fetched and saved.');
+  console.log('✅ Cookie saved.');
   return cookieString;
 }
 
-async function testCookie(cookie) {
-  console.log('🔍 Testing cookie...');
-  const res = await fetch('https://play.blooket.com', {
-    headers: { 'Cookie': cookie, 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
-  });
-  const text = await res.text();
-  const titleMatch = text.match(/<title>(.*?)<\/title>/);
-  const title = titleMatch ? titleMatch[1] : 'Unknown';
-  console.log(`Page title: "${title}"`);
-  if (text.includes('suspended')) console.log('⚠️ Account suspended!');
-  if (text.includes('Just a moment')) console.log('⚠️ Cloudflare challenge – IP blocked or cookie invalid.');
-  return text;
-}
-
-async function getCookie() {
+async function ensureCookie() {
+  // Check if we have a saved cookie
   if (fs.existsSync('cookie.txt')) {
-    const use = await ask('Use saved cookie? (y/n): ');
-    if (use.toLowerCase() === 'y') {
-      const saved = fs.readFileSync('cookie.txt', 'utf8').trim();
-      if (saved) return saved;
+    const saved = fs.readFileSync('cookie.txt', 'utf8').trim();
+    if (saved) {
+      // Test if it's still valid
+      const testRes = await fetch('https://play.blooket.com', {
+        headers: { 'Cookie': saved, 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+      });
+      const text = await testRes.text();
+      if (!text.includes('suspended') && !text.includes('Just a moment')) {
+        console.log('✅ Using saved cookie.');
+        return saved;
+      }
+      console.log('Saved cookie expired. Will log in again.');
     }
   }
 
-  console.log('\n📌 Auto‑login mode:');
+  // No valid cookie – ask for credentials once
+  console.log('\n📌 First time setup – please enter your Blooket credentials:');
   const email = await ask('Blooket email: ');
   const password = await ask('Blooket password: ');
   return await getFreshCookieWithPuppeteer(email, password);
 }
 
+// ---------- Core join function ----------
 async function joinBot(gameId, botName, cookie) {
   const joinRes = await fetch('https://fb.blooket.com/c/firebase/join', {
     method: 'PUT',
@@ -129,6 +127,7 @@ async function joinBot(gameId, botName, cookie) {
   });
 }
 
+// ---------- Crash ----------
 async function crashGame(gameId, botName, cookie) {
   console.log(`💥 Attempting to crash game ${gameId} with bot ${botName}...`);
   const joinRes = await fetch('https://fb.blooket.com/c/firebase/join', {
@@ -213,6 +212,7 @@ async function crashGame(gameId, botName, cookie) {
   });
 }
 
+// ---------- Freeze Leaderboard ----------
 async function freezeLeaderboard(gameId, botName, cookie) {
   console.log(`❄️ Attempting to freeze leaderboard in game ${gameId} with bot ${botName}...`);
   const joinRes = await fetch('https://fb.blooket.com/c/firebase/join', {
@@ -295,6 +295,7 @@ async function freezeLeaderboard(gameId, botName, cookie) {
   });
 }
 
+// ---------- Flood mode (with concurrency and bypass) ----------
 async function floodMode(cookie) {
   const gameId = await ask('Game PIN: ');
   const prefix = await ask('Bot name prefix (or empty for random): ');
@@ -364,15 +365,10 @@ async function floodMode(cookie) {
   console.log(`\n🎉 Flood finished: ${success}/${total} bots joined successfully.`);
 }
 
+// ---------- Main menu ----------
 async function main() {
   console.log('🎮 Blooket Ultimate Bot (Auto‑Login + Flood + Crash + Freeze)');
-  const cookie = await getCookie();
-
-  const testResult = await testCookie(cookie);
-  if (testResult.includes('suspended') || testResult.includes('Just a moment')) {
-    console.log('❌ Invalid cookie. Try again with a new account or VPN.');
-    return;
-  }
+  const cookie = await ensureCookie();
 
   while (true) {
     console.log('\n╔══════════════════════════════════════╗');
