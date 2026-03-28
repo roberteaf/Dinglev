@@ -2,10 +2,34 @@ import { WebSocket } from 'ws';
 import fetch from 'node-fetch';
 import readline from 'readline';
 import fs from 'fs';
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+
+puppeteer.use(StealthPlugin());
 
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 function ask(q) { return new Promise(r => rl.question(q, r)); }
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function getFreshCookieWithPuppeteer(email, password) {
+  console.log('🔐 Launching headless browser to log in...');
+  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+  const page = await browser.newPage();
+  await page.setViewport({ width: 1280, height: 720 });
+  await page.goto('https://www.blooket.com/login', { waitUntil: 'networkidle2' });
+  await page.waitForSelector('input[type="email"]', { timeout: 10000 });
+  await page.type('input[type="email"]', email, { delay: 80 });
+  await page.type('input[type="password"]', password, { delay: 80 });
+  await page.click('button[type="submit"]');
+  await page.waitForNavigation({ waitUntil: 'networkidle2' });
+  await page.goto('https://play.blooket.com', { waitUntil: 'networkidle2' });
+  const cookies = await page.cookies();
+  await browser.close();
+  const cookieString = cookies.map(c => `${c.name}=${c.value}`).join('; ');
+  fs.writeFileSync('cookie.txt', cookieString);
+  console.log('✅ Cookie fetched and saved.');
+  return cookieString;
+}
 
 async function testCookie(cookie) {
   console.log('🔍 Testing cookie...');
@@ -29,14 +53,11 @@ async function getCookie() {
       if (saved) return saved;
     }
   }
-  console.log('\n📌 Get a fresh cookie from your Blooket account:');
-  console.log('1. Log into your account (with VPN on).');
-  console.log('2. Open DevTools → Network tab.');
-  console.log('3. Visit play.blooket.com, copy the "Cookie" header.');
-  const cookie = await ask('Paste cookie: ');
-  const save = await ask('Save for next time? (y/n): ');
-  if (save.toLowerCase() === 'y') fs.writeFileSync('cookie.txt', cookie);
-  return cookie;
+
+  console.log('\n📌 Auto‑login mode:');
+  const email = await ask('Blooket email: ');
+  const password = await ask('Blooket password: ');
+  return await getFreshCookieWithPuppeteer(email, password);
 }
 
 async function joinBot(gameId, botName, cookie) {
@@ -344,12 +365,12 @@ async function floodMode(cookie) {
 }
 
 async function main() {
-  console.log('🎮 Blooket Ultimate Bot (Flood + Crash + Freeze)');
+  console.log('🎮 Blooket Ultimate Bot (Auto‑Login + Flood + Crash + Freeze)');
   const cookie = await getCookie();
 
   const testResult = await testCookie(cookie);
   if (testResult.includes('suspended') || testResult.includes('Just a moment')) {
-    console.log('❌ Invalid cookie. Get a fresh one from a new account with VPN.');
+    console.log('❌ Invalid cookie. Try again with a new account or VPN.');
     return;
   }
 
