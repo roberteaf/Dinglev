@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Animal Company - GitHub Edition</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; }
+        #loading-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #111; color: #4CAF50; display: flex;
+            flex-direction: column; align-items: center; justify-content: center; z-index: 100;
+        }
+        #bar-bg { width: 300px; height: 10px; border: 1px solid #4CAF50; margin-top: 10px; }
+        #bar-fill { width: 0%; height: 100%; background: #4CAF50; transition: width 0.2s; }
+    </style>
+</head>
+<body>
+
+    <div id="loading-screen">
+        <h1>FETCHING ASSETS FROM GITHUB...</h1>
+        <div id="bar-bg"><div id="bar-fill"></div></div>
+    </div>
+
+<script type="module">
+import * as THREE from 'https://unpkg.com/three@0.150.1/build/three.module.js';
+import { FBXLoader } from 'https://unpkg.com/three@0.150.1/examples/jsm/loaders/FBXLoader.js';
+import { GLTFLoader } from 'https://unpkg.com/three@0.150.1/examples/jsm/loaders/GLTFLoader.js';
+
+// --- PASTE YOUR RAW GITHUB LINKS HERE ---
+const GITHUB_ASSETS = {
+    map: 'https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/tripo_pbr_model_f8b11be6-bd08-4c3a-8a49-c7d5830be153.glb',
+    idle: 'https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/Idle.fbx',
+    walk: 'https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/Walking.fbx',
+    run: 'https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/Running.fbx',
+    aim: 'https://raw.githubusercontent.com/YOUR_USER/YOUR_REPO/main/Rifle%20Aiming%20Idle.fbx'
+};
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+const sun = new THREE.DirectionalLight(0xffffff, 1);
+sun.position.set(10, 20, 10);
+scene.add(sun);
+
+const manager = new THREE.LoadingManager();
+const bar = document.getElementById('bar-fill');
+manager.onProgress = (url, loaded, total) => { bar.style.width = (loaded / total * 100) + '%'; };
+manager.onLoad = () => { document.getElementById('loading-screen').style.display = 'none'; animate(); };
+
+const gltfLoader = new GLTFLoader(manager);
+const fbxLoader = new FBXLoader(manager);
+
+let player, mixer, currentAction;
+const actions = {};
+const keys = { w: false, a: false, s: false, d: false, shift: false, space: false };
+
+// Load Map
+gltfLoader.load(GITHUB_ASSETS.map, (gltf) => {
+    const map = gltf.scene;
+    map.scale.set(50, 50, 50);
+    scene.add(map);
+});
+
+// Load Character & Anims
+fbxLoader.load(GITHUB_ASSETS.idle, (character) => {
+    player = character;
+    player.scale.set(0.01, 0.01, 0.01);
+    scene.add(player);
+    mixer = new THREE.AnimationMixer(player);
+
+    const loadAnim = (name, url) => {
+        fbxLoader.load(url, (anim) => {
+            actions[name] = mixer.clipAction(anim.animations[0]);
+            if (name === 'idle') { currentAction = actions[name]; currentAction.play(); }
+        });
+    };
+
+    loadAnim('idle', GITHUB_ASSETS.idle);
+    loadAnim('walk', GITHUB_ASSETS.walk);
+    loadAnim('run', GITHUB_ASSETS.run);
+    loadAnim('aim', GITHUB_ASSETS.aim);
+});
+
+// Controls
+window.onkeydown = (e) => { 
+    const k = e.key.toLowerCase();
+    if(keys.hasOwnProperty(k)) keys[k] = true;
+    if(e.key === ' ') keys.space = true;
+};
+window.onkeyup = (e) => { 
+    const k = e.key.toLowerCase();
+    if(keys.hasOwnProperty(k)) keys[k] = false;
+    if(e.key === ' ') keys.space = false;
+};
+
+const clock = new THREE.Clock();
+function animate() {
+    requestAnimationFrame(animate);
+    const delta = clock.getDelta();
+    if (mixer) mixer.update(delta);
+
+    if (player) {
+        let speed = keys.shift ? 0.2 : 0.1;
+        if (keys.w) player.translateZ(speed);
+        if (keys.s) player.translateZ(-speed);
+        if (keys.a) player.rotation.y += 0.05;
+        if (keys.d) player.rotation.y -= 0.05;
+
+        // Camera Follow
+        const relativeCameraOffset = new THREE.Vector3(0, 5, -10);
+        const cameraOffset = relativeCameraOffset.applyMatrix4(player.matrixWorld);
+        camera.position.x = cameraOffset.x;
+        camera.position.y = cameraOffset.y;
+        camera.position.z = cameraOffset.z;
+        camera.lookAt(player.position);
+    }
+    renderer.render(scene, camera);
+}
+</script>
+</body>
+</html>
