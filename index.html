@@ -3,65 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1v1.lol | Dinglev Arena</title>
+    <title>1v1.lol - Dinglev</title>
     <style>
-        :root { --neon-green: #4CAF50; --dark-bg: #0a0a0a; }
-        body { margin: 0; overflow: hidden; background: var(--dark-bg); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        :root { --neon: #4CAF50; --bg: #050505; }
+        body { margin: 0; overflow: hidden; background: var(--bg); font-family: 'Arial Black', sans-serif; color: white; }
         
-        /* --- MAIN MENU & LOADING --- */
+        /* --- 1v1.LOL UI STYLE --- */
         #overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
+            background: linear-gradient(45deg, #000 0%, #111 100%);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 100; transition: opacity 0.8s ease;
+            z-index: 100;
         }
-        h1 { color: var(--neon-green); font-size: 5rem; font-style: italic; margin: 0; text-shadow: 0 0 20px rgba(76, 175, 80, 0.4); }
-        .status-text { color: #888; margin-top: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
+        h1 { font-size: 6rem; font-style: italic; color: var(--neon); text-shadow: 4px 4px 0px #000, 0 0 30px var(--neon); margin: 0; }
         
-        #loader-bar { width: 400px; height: 6px; background: #222; margin-top: 20px; border-radius: 10px; overflow: hidden; border: 1px solid #333; }
-        #loader-fill { width: 0%; height: 100%; background: var(--neon-green); box-shadow: 0 0 15px var(--neon-green); transition: width 0.3s; }
+        #loading-bar-container { width: 400px; height: 12px; background: #222; border: 2px solid #333; margin-top: 20px; border-radius: 20px; overflow: hidden; }
+        #loading-bar-fill { width: 0%; height: 100%; background: var(--neon); box-shadow: 0 0 15px var(--neon); transition: width 0.3s; }
 
-        /* --- IN-GAME UI --- */
-        #game-ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
-        #crosshair {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 20px; height: 20px; border: 2px solid var(--neon-green); border-radius: 50%;
-        }
-        #crosshair::after { content: ''; position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; background: var(--neon-green); transform: translate(-50%, -50%); border-radius: 50%; }
+        /* --- IN-GAME HUD --- */
+        #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
+        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 24px; height: 24px; border: 2px solid var(--neon); border-radius: 50%; }
+        #crosshair::before { content: ''; position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; background: var(--neon); transform: translate(-50%, -50%); border-radius: 50%; }
         
-        #killfeed { position: absolute; top: 20px; right: 20px; text-align: right; color: white; font-weight: bold; }
-        .kill-msg { background: rgba(0,0,0,0.5); padding: 5px 15px; border-right: 4px solid var(--neon-green); margin-bottom: 5px; animation: slideIn 0.3s ease-out; }
+        #health-container { position: absolute; bottom: 30px; left: 30px; width: 250px; }
+        #hp-label { font-size: 1.2rem; margin-bottom: 5px; }
+        #hp-bar { width: 100%; height: 15px; background: #222; border: 2px solid white; }
+        #hp-fill { width: 100%; height: 100%; background: var(--neon); }
 
-        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        #killfeed { position: absolute; top: 20px; right: 20px; text-align: right; font-size: 0.9rem; }
+        .kill-msg { background: rgba(0,0,0,0.6); padding: 5px 15px; border-left: 4px solid var(--neon); margin-bottom: 5px; }
     </style>
 </head>
 <body>
 
     <div id="overlay">
         <h1>1V1.LOL</h1>
-        <div id="loader-bar"><div id="loader-fill"></div></div>
-        <p class="status-text" id="status">INITIALIZING SYSTEMS...</p>
+        <div id="loading-bar-container"><div id="loading-bar-fill"></div></div>
+        <p id="status" style="margin-top: 15px; color: #888; letter-spacing: 2px;">SYNCING WITH GITHUB...</p>
     </div>
 
-    <div id="game-ui">
+    <div id="hud">
         <div id="crosshair"></div>
+        <div id="health-container">
+            <div id="hp-label">HP 100</div>
+            <div id="hp-bar"><div id="hp-fill"></div></div>
+        </div>
         <div id="killfeed">
-            <div class="kill-msg">Dinglev joined the arena</div>
+            <div class="kill-msg">Welcome to Dinglev Arena</div>
         </div>
     </div>
 
-<script type="module">
-    // FIXED: Using full CDN URLs to resolve "three" module specifier error
-    import * as THREE from 'https://cdn.skypack.dev/three@0.150.1/build/three.module.js';
-    import { FBXLoader } from 'https://cdn.skypack.dev/three@0.150.1/examples/jsm/loaders/FBXLoader.js';
-    import { GLTFLoader } from 'https://cdn.skypack.dev/three@0.150.1/examples/jsm/loaders/GLTFLoader.js';
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.150.1/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.150.1/examples/jsm/"
+  }
+}
+</script>
 
+<script type="module">
+    import * as THREE from 'three';
+    import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    // --- ASSET LINKS ---
+    const BASE = "https://raw.githubusercontent.com/roberteaf/Dinglev/main/";
     const ASSETS = {
-        map: 'https://raw.githubusercontent.com/roberteaf/Dinglev/main/tripo_pbr_model_f8b11be6-bd08-4c3a-8a49-c7d5830be153.glb',
-        idle: 'https://raw.githubusercontent.com/roberteaf/Dinglev/main/Idle.fbx',
-        walk: 'https://raw.githubusercontent.com/roberteaf/Dinglev/main/Walking.fbx',
-        run: 'https://raw.githubusercontent.com/roberteaf/Dinglev/main/Running.fbx',
-        aim: 'https://raw.githubusercontent.com/roberteaf/Dinglev/main/Rifle%20Aiming%20Idle.fbx'
+        map:  BASE + "tripo_pbr_model_f8b11be6-bd08-4c3a-8a49-c7d5830be153.glb",
+        idle: BASE + "Idle.fbx",
+        walk: BASE + "Walking.fbx",
+        run:  BASE + "Running.fbx",
+        aim:  BASE + "Rifle%20Aiming%20Idle.fbx"
     };
 
     let scene, camera, renderer, clock, mixer, player;
@@ -69,19 +82,18 @@
     let currentAction;
     const keys = { w: false, a: false, s: false, d: false, shift: false, space: false };
     
-    // Physics & Camera State
+    // Physics
     let velocityY = 0;
     let isJumping = false;
-    const gravity = -0.6; // Units per second squared
-    const cameraTarget = new THREE.Vector3();
+    const gravity = -0.015; 
 
     function init() {
         clock = new THREE.Clock();
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0a0a0a);
-        scene.fog = new THREE.FogExp2(0x0a0a0a, 0.002);
+        scene.background = new THREE.Color(0x050505);
+        scene.fog = new THREE.Fog(0x050505, 10, 500);
 
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -89,89 +101,63 @@
         renderer.shadowMap.enabled = true;
         document.body.appendChild(renderer.domElement);
 
-        // Lights
-        const ambient = new THREE.AmbientLight(0xffffff, 0.5);
-        scene.add(ambient);
-        const sun = new THREE.DirectionalLight(0x4CAF50, 1.2);
-        sun.position.set(100, 200, 100);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        const sun = new THREE.DirectionalLight(0xffffff, 1);
+        sun.position.set(50, 100, 50);
         sun.castShadow = true;
         scene.add(sun);
 
         const manager = new THREE.LoadingManager();
-        const fill = document.getElementById('loader-fill');
-        const status = document.getElementById('status');
-
-        manager.onProgress = (url, loaded, total) => {
-            const progress = (loaded / total) * 100;
-            fill.style.width = progress + '%';
-            status.innerText = `FETCHING DATA: ${Math.round(progress)}%`;
+        manager.onProgress = (u, l, t) => {
+            const p = (l / t) * 100;
+            document.getElementById('loading-bar-fill').style.width = p + '%';
         };
 
         manager.onLoad = () => {
-            status.innerText = "MATCH FOUND! READY";
-            setTimeout(() => {
-                document.getElementById('overlay').style.opacity = '0';
-                document.getElementById('game-ui').style.display = 'block';
-                setTimeout(() => document.getElementById('overlay').style.display = 'none', 800);
-            }, 1000);
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('hud').style.display = 'block';
             animate();
-        };
-
-        manager.onError = (url) => {
-            status.style.color = "red";
-            status.innerText = "ERROR: LINK BROKEN OR CORS BLOCKED";
-            console.error("Failed to load:", url);
         };
 
         const gltfLoader = new GLTFLoader(manager);
         const fbxLoader = new FBXLoader(manager);
 
-        // Load Map
+        // Load Arena
         gltfLoader.load(ASSETS.map, (gltf) => {
-            const model = gltf.scene;
-            model.scale.set(60, 60, 60);
-            model.traverse(n => { if(n.isMesh) { n.receiveShadow = true; n.castShadow = true; }});
-            scene.add(model);
+            gltf.scene.scale.set(60, 60, 60);
+            scene.add(gltf.scene);
         });
 
         // Load Character
         fbxLoader.load(ASSETS.idle, (char) => {
             player = char;
             player.scale.set(0.01, 0.01, 0.01);
-            player.traverse(n => { if(n.isMesh) n.castShadow = true; });
             scene.add(player);
-
             mixer = new THREE.AnimationMixer(player);
 
-            const addAnim = (name, url) => {
+            const loadAnim = (name, url) => {
                 fbxLoader.load(url, (anim) => {
                     actions[name] = mixer.clipAction(anim.animations[0]);
                     if(name === 'idle') { currentAction = actions[name]; currentAction.play(); }
                 });
             };
 
-            addAnim('idle', ASSETS.idle);
-            addAnim('walk', ASSETS.walk);
-            addAnim('run', ASSETS.run);
-            addAnim('aim', ASSETS.aim);
+            loadAnim('idle', ASSETS.idle);
+            loadAnim('walk', ASSETS.walk);
+            loadAnim('run',  ASSETS.run);
+            loadAnim('aim',  ASSETS.aim);
         });
 
-        window.addEventListener('keydown', (e) => toggleKey(e, true));
-        window.addEventListener('keyup', (e) => toggleKey(e, false));
-        window.addEventListener('resize', onWindowResize);
-    }
-
-    function toggleKey(e, isDown) {
-        const k = e.key.toLowerCase();
-        if (keys.hasOwnProperty(k)) keys[k] = isDown;
-        if (e.code === 'Space') keys.space = isDown;
-        if (e.key === 'Shift') keys.shift = isDown;
-    }
-
-    function onWindowResize() {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        window.onkeydown = (e) => { 
+            const k = e.key.toLowerCase();
+            if(keys.hasOwnProperty(k)) keys[k] = true;
+            if(e.code === 'Space') keys.space = true;
+        };
+        window.onkeyup = (e) => { 
+            const k = e.key.toLowerCase();
+            if(keys.hasOwnProperty(k)) keys[k] = false;
+            if(e.code === 'Space') keys.space = false;
+        };
     }
 
     function animate() {
@@ -181,52 +167,45 @@
 
         if (player) {
             // Movement Logic
-            const speed = keys.shift ? 0.45 : 0.2;
-            const turnSpeed = 0.06;
+            const speed = keys.shift ? 0.35 : 0.18;
+            const rotSpeed = 0.05;
 
-            if (keys.a) player.rotation.y += turnSpeed;
-            if (keys.d) player.rotation.y -= turnSpeed;
             if (keys.w) player.translateZ(speed);
             if (keys.s) player.translateZ(-speed);
+            if (keys.a) player.rotation.y += rotSpeed;
+            if (keys.d) player.rotation.y -= rotSpeed;
 
-            // Jump Physics ($v = v_0 + at$)
+            // Physics (Jump/Gravity)
             if (keys.space && !isJumping) {
                 isJumping = true;
                 velocityY = 0.35;
             }
             if (isJumping || player.position.y > 0) {
                 player.position.y += velocityY;
-                velocityY += gravity * dt;
+                velocityY += gravity;
             }
-            if (player.position.y < 0) {
+            if (player.position.y <= 0) {
                 player.position.y = 0;
                 isJumping = false;
                 velocityY = 0;
             }
 
-            // Animation Fading
-            let nextAction = actions['idle'];
-            if (keys.w || keys.s) {
-                nextAction = keys.shift ? actions['run'] : actions['walk'];
+            // Anim State
+            let next = actions['idle'];
+            if (keys.w || keys.s) next = keys.shift ? actions['run'] : actions['walk'];
+
+            if (next && currentAction !== next) {
+                next.reset().fadeIn(0.2).play();
+                currentAction.fadeOut(0.2);
+                currentAction = next;
             }
 
-            if (nextAction && currentAction !== nextAction) {
-                nextAction.reset().fadeIn(0.15).play();
-                currentAction.fadeOut(0.15);
-                currentAction = nextAction;
-            }
-
-            // Smooth Camera Follow (Lerp)
-            const idealOffset = new THREE.Vector3(0, 12, -28);
-            idealOffset.applyQuaternion(player.quaternion);
-            idealOffset.add(player.position);
-
-            const idealLookat = new THREE.Vector3(0, 5, 10);
-            idealLookat.applyQuaternion(player.quaternion);
-            idealLookat.add(player.position);
-
-            camera.position.lerp(idealOffset, 0.1);
-            camera.lookAt(idealLookat);
+            // Smooth Camera (TPP)
+            const camOffset = new THREE.Vector3(0, 10, -25);
+            camOffset.applyQuaternion(player.quaternion);
+            camOffset.add(player.position);
+            camera.position.lerp(camOffset, 0.1);
+            camera.lookAt(player.position.x, player.position.y + 5, player.position.z);
         }
 
         renderer.render(scene, camera);
