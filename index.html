@@ -3,53 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1v1.lol - Dinglev</title>
+    <title>1v1.lol | Dinglev Arena</title>
     <style>
         :root { --neon: #4CAF50; --bg: #050505; }
         body { margin: 0; overflow: hidden; background: var(--bg); font-family: 'Arial Black', sans-serif; color: white; }
         
-        /* --- 1v1.LOL UI STYLE --- */
+        /* LOADING SCREEN */
         #overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(45deg, #000 0%, #111 100%);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 100;
+            background: radial-gradient(circle, #111 0%, #000 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100;
         }
-        h1 { font-size: 6rem; font-style: italic; color: var(--neon); text-shadow: 4px 4px 0px #000, 0 0 30px var(--neon); margin: 0; }
-        
-        #loading-bar-container { width: 400px; height: 12px; background: #222; border: 2px solid #333; margin-top: 20px; border-radius: 20px; overflow: hidden; }
-        #loading-bar-fill { width: 0%; height: 100%; background: var(--neon); box-shadow: 0 0 15px var(--neon); transition: width 0.3s; }
+        h1 { font-size: 5rem; font-style: italic; color: var(--neon); text-shadow: 0 0 20px var(--neon); margin: 0; }
+        #loading-bar { width: 300px; height: 8px; background: #222; border: 1px solid #444; margin-top: 20px; border-radius: 10px; overflow: hidden; }
+        #fill { width: 0%; height: 100%; background: var(--neon); box-shadow: 0 0 10px var(--neon); transition: width 0.2s; }
 
-        /* --- IN-GAME HUD --- */
+        /* HUD */
         #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
-        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 24px; height: 24px; border: 2px solid var(--neon); border-radius: 50%; }
-        #crosshair::before { content: ''; position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; background: var(--neon); transform: translate(-50%, -50%); border-radius: 50%; }
-        
-        #health-container { position: absolute; bottom: 30px; left: 30px; width: 250px; }
-        #hp-label { font-size: 1.2rem; margin-bottom: 5px; }
-        #hp-bar { width: 100%; height: 15px; background: #222; border: 2px solid white; }
-        #hp-fill { width: 100%; height: 100%; background: var(--neon); }
-
-        #killfeed { position: absolute; top: 20px; right: 20px; text-align: right; font-size: 0.9rem; }
-        .kill-msg { background: rgba(0,0,0,0.6); padding: 5px 15px; border-left: 4px solid var(--neon); margin-bottom: 5px; }
+        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 20px; height: 20px; border: 2px solid var(--neon); border-radius: 50%; }
+        #crosshair::after { content: ''; position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; background: var(--neon); transform: translate(-50%, -50%); border-radius: 50%; }
+        #health { position: absolute; bottom: 30px; left: 30px; border-left: 5px solid var(--neon); padding-left: 15px; }
+        #hp-text { font-size: 1.5rem; }
     </style>
 </head>
 <body>
 
     <div id="overlay">
         <h1>1V1.LOL</h1>
-        <div id="loading-bar-container"><div id="loading-bar-fill"></div></div>
-        <p id="status" style="margin-top: 15px; color: #888; letter-spacing: 2px;">SYNCING WITH GITHUB...</p>
+        <div id="loading-bar"><div id="fill"></div></div>
+        <p id="status" style="color: #888; margin-top: 10px;">CONNECTING TO DINGLEV REPO...</p>
     </div>
 
     <div id="hud">
         <div id="crosshair"></div>
-        <div id="health-container">
-            <div id="hp-label">HP 100</div>
-            <div id="hp-bar"><div id="hp-fill"></div></div>
-        </div>
-        <div id="killfeed">
-            <div class="kill-msg">Welcome to Dinglev Arena</div>
+        <div id="health">
+            <div id="hp-text">100 HP</div>
+            <div style="width: 200px; height: 10px; background: #222; margin-top: 5px;"><div style="width: 100%; height: 100%; background: var(--neon);"></div></div>
         </div>
     </div>
 
@@ -67,7 +56,6 @@
     import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-    // --- ASSET LINKS ---
     const BASE = "https://raw.githubusercontent.com/roberteaf/Dinglev/main/";
     const ASSETS = {
         map:  BASE + "tripo_pbr_model_f8b11be6-bd08-4c3a-8a49-c7d5830be153.glb",
@@ -82,37 +70,32 @@
     let currentAction;
     const keys = { w: false, a: false, s: false, d: false, shift: false, space: false };
     
-    // Physics
+    // PHYSICS
     let velocityY = 0;
     let isJumping = false;
-    const gravity = -0.015; 
+    const gravity = -1.2; 
+    const jumpPower = 0.4;
 
     function init() {
         clock = new THREE.Clock();
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0x050505);
-        scene.fog = new THREE.Fog(0x050505, 10, 500);
+        scene.fog = new THREE.Fog(0x050505, 1, 1000);
 
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
         
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.shadowMap.enabled = true;
         document.body.appendChild(renderer.domElement);
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-        const sun = new THREE.DirectionalLight(0xffffff, 1);
-        sun.position.set(50, 100, 50);
-        sun.castShadow = true;
-        scene.add(sun);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(10, 50, 10);
+        scene.add(light);
 
         const manager = new THREE.LoadingManager();
-        manager.onProgress = (u, l, t) => {
-            const p = (l / t) * 100;
-            document.getElementById('loading-bar-fill').style.width = p + '%';
-        };
-
+        manager.onProgress = (u, l, t) => { document.getElementById('fill').style.width = (l/t*100) + '%'; };
         manager.onLoad = () => {
             document.getElementById('overlay').style.display = 'none';
             document.getElementById('hud').style.display = 'block';
@@ -122,30 +105,33 @@
         const gltfLoader = new GLTFLoader(manager);
         const fbxLoader = new FBXLoader(manager);
 
-        // Load Arena
+        // 1. LOAD MAP (Big scale so you aren't tiny)
         gltfLoader.load(ASSETS.map, (gltf) => {
-            gltf.scene.scale.set(60, 60, 60);
-            scene.add(gltf.scene);
+            const map = gltf.scene;
+            map.scale.set(100, 100, 100); 
+            scene.add(map);
         });
 
-        // Load Character
+        // 2. LOAD PLAYER
         fbxLoader.load(ASSETS.idle, (char) => {
             player = char;
-            player.scale.set(0.01, 0.01, 0.01);
+            player.scale.set(0.015, 0.015, 0.015);
             scene.add(player);
             mixer = new THREE.AnimationMixer(player);
 
-            const loadAnim = (name, url) => {
+            const load = (name, url) => {
                 fbxLoader.load(url, (anim) => {
                     actions[name] = mixer.clipAction(anim.animations[0]);
-                    if(name === 'idle') { currentAction = actions[name]; currentAction.play(); }
+                    // FIX: Make walking and running loop forever
+                    if (name === 'walk' || name === 'run') actions[name].setLoop(THREE.LoopRepeat);
+                    if (name === 'idle') { currentAction = actions[name]; currentAction.play(); }
                 });
             };
 
-            loadAnim('idle', ASSETS.idle);
-            loadAnim('walk', ASSETS.walk);
-            loadAnim('run',  ASSETS.run);
-            loadAnim('aim',  ASSETS.aim);
+            load('idle', ASSETS.idle);
+            load('walk', ASSETS.walk);
+            load('run',  ASSETS.run);
+            load('aim',  ASSETS.aim);
         });
 
         window.onkeydown = (e) => { 
@@ -166,46 +152,51 @@
         if (mixer) mixer.update(dt);
 
         if (player) {
-            // Movement Logic
-            const speed = keys.shift ? 0.35 : 0.18;
-            const rotSpeed = 0.05;
+            // MOVEMENT
+            const speed = keys.shift ? 0.6 : 0.25;
+            const rotSpeed = 0.06;
 
             if (keys.w) player.translateZ(speed);
             if (keys.s) player.translateZ(-speed);
             if (keys.a) player.rotation.y += rotSpeed;
             if (keys.d) player.rotation.y -= rotSpeed;
 
-            // Physics (Jump/Gravity)
+            // JUMP & GRAVITY PHYSICS
             if (keys.space && !isJumping) {
                 isJumping = true;
-                velocityY = 0.35;
+                velocityY = jumpPower;
             }
+
             if (isJumping || player.position.y > 0) {
                 player.position.y += velocityY;
-                velocityY += gravity;
+                velocityY += gravity * dt; // Pull down over time
             }
+
+            // Ground Collision (Simplest version)
             if (player.position.y <= 0) {
                 player.position.y = 0;
                 isJumping = false;
                 velocityY = 0;
             }
 
-            // Anim State
+            // ANIMATION CHANGER
             let next = actions['idle'];
             if (keys.w || keys.s) next = keys.shift ? actions['run'] : actions['walk'];
 
             if (next && currentAction !== next) {
-                next.reset().fadeIn(0.2).play();
-                currentAction.fadeOut(0.2);
+                next.reset().fadeIn(0.15).play();
+                currentAction.fadeOut(0.15);
                 currentAction = next;
             }
 
-            // Smooth Camera (TPP)
-            const camOffset = new THREE.Vector3(0, 10, -25);
+            // TPP CAMERA (FORTNITE STYLE)
+            // We set the camera behind the player's back
+            const camOffset = new THREE.Vector3(0, 8, -18); 
             camOffset.applyQuaternion(player.quaternion);
             camOffset.add(player.position);
-            camera.position.lerp(camOffset, 0.1);
-            camera.lookAt(player.position.x, player.position.y + 5, player.position.z);
+            
+            camera.position.lerp(camOffset, 0.1); // Smooth follow
+            camera.lookAt(player.position.x, player.position.y + 4, player.position.z);
         }
 
         renderer.render(scene, camera);
