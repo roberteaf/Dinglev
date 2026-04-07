@@ -3,27 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1v1.lol | Dinglev Arena</title>
+    <title>1v1.lol - Dinglev Pro</title>
     <style>
-        :root { --neon: #4CAF50; --bg: #050505; }
-        body { margin: 0; overflow: hidden; background: var(--bg); font-family: 'Arial Black', sans-serif; color: white; }
+        :root { --neon: #4CAF50; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Arial Black', sans-serif; }
         
-        /* LOADING SCREEN */
         #overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle, #111 0%, #000 100%);
+            background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
             display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100;
         }
-        h1 { font-size: 5rem; font-style: italic; color: var(--neon); text-shadow: 0 0 20px var(--neon); margin: 0; }
-        #loading-bar { width: 300px; height: 8px; background: #222; border: 1px solid #444; margin-top: 20px; border-radius: 10px; overflow: hidden; }
-        #fill { width: 0%; height: 100%; background: var(--neon); box-shadow: 0 0 10px var(--neon); transition: width 0.2s; }
+        h1 { font-size: 4rem; font-style: italic; color: var(--neon); text-shadow: 0 0 20px var(--neon); margin: 0; }
+        #loading-bar { width: 300px; height: 10px; background: #222; border: 1px solid #444; margin-top: 20px; border-radius: 5px; }
+        #fill { width: 0%; height: 100%; background: var(--neon); transition: width 0.2s; }
+        #status { color: #888; font-family: sans-serif; margin-top: 10px; font-size: 12px; }
 
-        /* HUD */
         #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
-        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 20px; height: 20px; border: 2px solid var(--neon); border-radius: 50%; }
-        #crosshair::after { content: ''; position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; background: var(--neon); transform: translate(-50%, -50%); border-radius: 50%; }
-        #health { position: absolute; bottom: 30px; left: 30px; border-left: 5px solid var(--neon); padding-left: 15px; }
-        #hp-text { font-size: 1.5rem; }
+        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 22px; height: 22px; border: 2px solid var(--neon); border-radius: 50%; }
     </style>
 </head>
 <body>
@@ -31,14 +27,13 @@
     <div id="overlay">
         <h1>1V1.LOL</h1>
         <div id="loading-bar"><div id="fill"></div></div>
-        <p id="status" style="color: #888; margin-top: 10px;">CONNECTING TO DINGLEV REPO...</p>
+        <p id="status">INIT: LOADING REPO ASSETS...</p>
     </div>
 
     <div id="hud">
         <div id="crosshair"></div>
-        <div id="health">
-            <div id="hp-text">100 HP</div>
-            <div style="width: 200px; height: 10px; background: #222; margin-top: 5px;"><div style="width: 100%; height: 100%; background: var(--neon);"></div></div>
+        <div style="position:absolute; bottom:20px; left:20px; color:white; background:rgba(0,0,0,0.5); padding:10px;">
+            WASD: Move | SHIFT: Run | SPACE: Jump
         </div>
     </div>
 
@@ -56,13 +51,14 @@
     import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-    const BASE = "https://raw.githubusercontent.com/roberteaf/Dinglev/main/";
+    // ASSET PATHS
+    const GITHUB = "https://raw.githubusercontent.com/roberteaf/Dinglev/main/";
     const ASSETS = {
-        map:  BASE + "tripo_pbr_model_f8b11be6-bd08-4c3a-8a49-c7d5830be153.glb",
-        idle: BASE + "Idle.fbx",
-        walk: BASE + "Walking.fbx",
-        run:  BASE + "Running.fbx",
-        aim:  BASE + "Rifle%20Aiming%20Idle.fbx"
+        map:  GITHUB + "tripo_pbr_model_f8b11be6-bd08-4c3a-8a49-c7d5830be153.glb",
+        idle: GITHUB + "Idle.fbx",
+        walk: GITHUB + "Walking.fbx",
+        run:  GITHUB + "Running.fbx",
+        aim:  GITHUB + "Rifle%20Aiming%20Idle.fbx"
     };
 
     let scene, camera, renderer, clock, mixer, player;
@@ -73,14 +69,13 @@
     // PHYSICS
     let velocityY = 0;
     let isJumping = false;
-    const gravity = -1.2; 
-    const jumpPower = 0.4;
+    const gravity = -15; // Gravity per second
 
     function init() {
         clock = new THREE.Clock();
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050505);
-        scene.fog = new THREE.Fog(0x050505, 1, 1000);
+        scene.background = new THREE.Color(0x87ceeb); // Sky blue
+        scene.fog = new THREE.Fog(0x87ceeb, 50, 1000);
 
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
         
@@ -89,49 +84,62 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-        const light = new THREE.DirectionalLight(0xffffff, 1);
-        light.position.set(10, 50, 10);
-        scene.add(light);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+        const sun = new THREE.DirectionalLight(0xffffff, 1);
+        sun.position.set(100, 200, 100);
+        scene.add(sun);
 
         const manager = new THREE.LoadingManager();
-        manager.onProgress = (u, l, t) => { document.getElementById('fill').style.width = (l/t*100) + '%'; };
+        manager.onProgress = (u, l, t) => { 
+            document.getElementById('fill').style.width = (l/t*100) + '%'; 
+            document.getElementById('status').innerText = "FETCHING: " + u.split('/').pop();
+        };
         manager.onLoad = () => {
             document.getElementById('overlay').style.display = 'none';
             document.getElementById('hud').style.display = 'block';
+            console.log("Assets Loaded Successfully");
             animate();
         };
+        manager.onError = (url) => console.error("Error loading:", url);
 
         const gltfLoader = new GLTFLoader(manager);
         const fbxLoader = new FBXLoader(manager);
 
-        // 1. LOAD MAP (Big scale so you aren't tiny)
+        // LOAD MAP - Scaled UP to be visible
         gltfLoader.load(ASSETS.map, (gltf) => {
             const map = gltf.scene;
-            map.scale.set(100, 100, 100); 
+            map.scale.set(150, 150, 150); // Big arena
+            map.position.y = -0.1; // Slightly below floor
             scene.add(map);
+            console.log("Map Loaded");
         });
 
-        // 2. LOAD PLAYER
+        // LOAD PLAYER
         fbxLoader.load(ASSETS.idle, (char) => {
             player = char;
-            player.scale.set(0.015, 0.015, 0.015);
+            player.scale.set(0.012, 0.012, 0.012);
             scene.add(player);
             mixer = new THREE.AnimationMixer(player);
 
-            const load = (name, url) => {
+            const loadAnim = (name, url) => {
                 fbxLoader.load(url, (anim) => {
-                    actions[name] = mixer.clipAction(anim.animations[0]);
-                    // FIX: Make walking and running loop forever
-                    if (name === 'walk' || name === 'run') actions[name].setLoop(THREE.LoopRepeat);
-                    if (name === 'idle') { currentAction = actions[name]; currentAction.play(); }
+                    const clip = anim.animations[0];
+                    actions[name] = mixer.clipAction(clip);
+                    
+                    // FIX: LOOP ANIMATIONS FOREVER
+                    actions[name].setLoop(THREE.LoopRepeat);
+                    
+                    if (name === 'idle') { 
+                        currentAction = actions[name]; 
+                        currentAction.play(); 
+                    }
                 });
             };
 
-            load('idle', ASSETS.idle);
-            load('walk', ASSETS.walk);
-            load('run',  ASSETS.run);
-            load('aim',  ASSETS.aim);
+            loadAnim('idle', ASSETS.idle);
+            loadAnim('walk', ASSETS.walk);
+            loadAnim('run',  ASSETS.run);
+            loadAnim('aim',  ASSETS.aim);
         });
 
         window.onkeydown = (e) => { 
@@ -148,54 +156,56 @@
 
     function animate() {
         requestAnimationFrame(animate);
-        const dt = clock.getDelta();
-        if (mixer) mixer.update(dt);
+        const delta = clock.getDelta();
+        if (mixer) mixer.update(delta);
 
         if (player) {
-            // MOVEMENT
-            const speed = keys.shift ? 0.6 : 0.25;
-            const rotSpeed = 0.06;
+            // MOVEMENT - 'S' now goes backward (-Z)
+            const moveSpeed = keys.shift ? 40 : 18; // Units per second
+            const rotSpeed = 3.5; // Radians per second
 
-            if (keys.w) player.translateZ(speed);
-            if (keys.s) player.translateZ(-speed);
-            if (keys.a) player.rotation.y += rotSpeed;
-            if (keys.d) player.rotation.y -= rotSpeed;
+            if (keys.w) player.translateZ(moveSpeed * delta);
+            if (keys.s) player.translateZ(-moveSpeed * delta); // BACKWARD
+            if (keys.a) player.rotation.y += rotSpeed * delta;
+            if (keys.d) player.rotation.y -= rotSpeed * delta;
 
-            // JUMP & GRAVITY PHYSICS
+            // JUMP PHYSICS
             if (keys.space && !isJumping) {
                 isJumping = true;
-                velocityY = jumpPower;
+                velocityY = 8.5; // Jump boost
             }
 
             if (isJumping || player.position.y > 0) {
-                player.position.y += velocityY;
-                velocityY += gravity * dt; // Pull down over time
+                player.position.y += velocityY * delta;
+                velocityY += gravity * delta;
             }
 
-            // Ground Collision (Simplest version)
-            if (player.position.y <= 0) {
+            if (player.position.y < 0) {
                 player.position.y = 0;
                 isJumping = false;
                 velocityY = 0;
             }
 
-            // ANIMATION CHANGER
-            let next = actions['idle'];
-            if (keys.w || keys.s) next = keys.shift ? actions['run'] : actions['walk'];
-
-            if (next && currentAction !== next) {
-                next.reset().fadeIn(0.15).play();
-                currentAction.fadeOut(0.15);
-                currentAction = next;
+            // ANIMATION STATE CONTROLLER
+            let nextAction = actions['idle'];
+            if (keys.w || keys.s) {
+                nextAction = keys.shift ? actions['run'] : actions['walk'];
             }
 
-            // TPP CAMERA (FORTNITE STYLE)
-            // We set the camera behind the player's back
-            const camOffset = new THREE.Vector3(0, 8, -18); 
-            camOffset.applyQuaternion(player.quaternion);
-            camOffset.add(player.position);
+            if (nextAction && currentAction !== nextAction) {
+                nextAction.reset().fadeIn(0.2).play();
+                currentAction.fadeOut(0.2);
+                currentAction = nextAction;
+            }
+
+            // FORTNITE CAMERA (Lock behind character)
+            const cameraOffset = new THREE.Vector3(0, 8, -18); 
+            cameraOffset.applyQuaternion(player.quaternion);
             
-            camera.position.lerp(camOffset, 0.1); // Smooth follow
+            const targetCamPos = player.position.clone().add(cameraOffset);
+            camera.position.lerp(targetCamPos, 0.1); // Smooth transition
+            
+            // Look slightly above the character's head
             camera.lookAt(player.position.x, player.position.y + 4, player.position.z);
         }
 
